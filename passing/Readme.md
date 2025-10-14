@@ -20,23 +20,25 @@ This is a simple Linux kernel module that demonstrates how to pass data between 
 5. Unload the module from the kernel using `sudo rmmod passing`.
 
 ## Another struct in module_param
-struct kernel_param {
-	const char *name;
-	struct module *mod;
-	const struct kernel_param_ops *ops;
-	const u16 perm;
-	s8 level;
-	u8 flags;
-	union {
-		void *arg;
-		const struct kparam_string *str;
-		const struct kparam_array *arr;
-	};
+struct kernel_param 
+{
+    const char *name;
+    struct module *mod;
+    const struct kernel_param_ops *ops;
+    const u16 perm;
+    s8 level;
+    u8 flags;
+    union {
+        void *arg;
+        const struct kparam_string *str;
+        const struct kparam_array *arr;
+    };
 };
 
-struct kernel_param_ops {
-    int (*set)(const char *val, const struct kernel_param *kp);
-    int (*get)(char *buffer, const struct kernel_param *kp);
+struct kernel_param_ops 
+{
+    int (*set)(const char *val, const struct    kernel_param *kp);
+    int (*get)(char *buffer, const struct kernel_param  *kp);
     void (*free)(const struct kernel_param *kp);
 };
 

@@ -20,6 +20,7 @@ This is a simple Linux kernel module that demonstrates how to pass data between 
 5. Unload the module from the kernel using `sudo rmmod passing`.
 
 ## Another struct in module_param
+```c
 struct kernel_param 
 {
     const char *name;
@@ -41,4 +42,4 @@ struct kernel_param_ops
     int (*get)(char *buffer, const struct kernel_param  *kp);
     void (*free)(const struct kernel_param *kp);
 };
-
+```

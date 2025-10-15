@@ -16,6 +16,7 @@ static int __init static_mm(void)
 
 static void __exit exit_static(void)
 {
+    unregister_chrdev_region(dev, 1);
     printk(KERN_INFO "exit funtion static mm number");
 }
 

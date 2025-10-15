@@ -1,4 +1,5 @@
 obj-m +=staticMM_number.o
+obj-m +=dynamicMM_number.o
 
 ifdef ARCH
 	KDIR := /home/tu/BBG/tmp/lib/modules/6.1.83/build
@@ -9,4 +10,4 @@ endif
 all:
 	make -C $(KDIR) M=$(shell pwd) modules
 clean:
-	make -C $(KDIR) M=$(shell pwd)
+	make -C $(KDIR) M=$(shell pwd) clean

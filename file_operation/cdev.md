@@ -7,6 +7,11 @@
 struct file_operations;
 struct inode;
 struct module;
+
+struct list_head {
+	struct list_head *next, *prev;
+};
+
 struct cdev {
 	struct kobject kobj;
 	struct module *owner;

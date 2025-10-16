@@ -1,7 +1,5 @@
 # lib cdev.h
 ```c
-#ifndef _LINUX_CDEV_H
-#define _LINUX_CDEV_H
 #include <linux/kobject.h>
 #include <linux/kdev_t.h>
 #include <linux/list.h>
@@ -27,7 +25,6 @@ int cdev_device_add(struct cdev *cdev, struct device *dev);
 void cdev_device_del(struct cdev *cdev, struct device *dev);
 void cdev_del(struct cdev *);
 void cd_forget(struct inode *);
-#endif
 ```
 
 

@@ -30,16 +30,16 @@ kfree(const void *ptr)
 #include <linux/uaccess.h>
 copy_to_user(void __user* to, const void* from, unsigned long n);
 ```
-to: destination address in user space
-from: source address in kernel space
-n: number of bytes to copy
+to: destination address in user space <br>
+from: source address in kernel space  <br>
+n: number of bytes to copy <br>
 ```c
 #include <linux/uaccess.h>
 copy_from_user(void* to, const void __user* from, unsigned long n);
 ```
-to: destination address in kernel space
-from: source address in user space
-n: number of bytes to copy
+to: destination address in kernel space <br>
+from: source address in user space <br>
+n: number of bytes to copy <br>
 
 ## Usage
 1. Compile the kernel module using `sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-`.

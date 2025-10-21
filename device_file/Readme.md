@@ -21,7 +21,7 @@ mknod -m 666 /dev/my_device c 240 0
 Create a major and minor number first, You must to follow three steps:
 1. Include header files
 ```c
-#include <linux/cdev.h>
+#include <linux/kdev_t.h>
 #include <linux/device.h>
 ```
 2. Create a struct Class

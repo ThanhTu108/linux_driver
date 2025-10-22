@@ -112,20 +112,20 @@ static long ioctl_fops(struct file* file, unsigned int cmd, unsigned long arg)
 
 static int __init create_waitqueue(void)
 {
-    if(alloc_chrdev_region(&dev_num, 0, 1, "wait_queue_mm") < 0)
+    if(alloc_chrdev_region(&dev_num, 0, 1, "static_wait_queue_mm") < 0)
     {
         pr_err("Cannot allocate major, minor number\n");
         return -1;
     }
     pr_info("\tMajor(%d)\n\tMinor(%d)", MAJOR(dev_num), MINOR(dev_num));
-    dev_class = class_create(THIS_MODULE, "wait_queue_class");
+    dev_class = class_create(THIS_MODULE, "static_wait_queue_class");
     if(IS_ERR(dev_class))
     {
         pr_err("Cannot create struct class\n");
         goto r_class;
     }
 
-    dev_file = device_create(dev_class, NULL, dev_num, NULL, "wait_queue_devfile");
+    dev_file = device_create(dev_class, NULL, dev_num, NULL, "static_wait_queue_devfile");
     if(IS_ERR(dev_file))
     {
         pr_err("Cannot create device file\n");

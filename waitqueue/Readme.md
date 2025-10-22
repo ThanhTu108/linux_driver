@@ -7,7 +7,7 @@ Two types of wait queues are defined in the Linux kernel:
 - wait_queue_head_t name;
 - initialize using `init_waitqueue_head(&name)`
 
-## Queuing
+## Queuing  
 ### 1. wait_event
 ```c
 wait_event(name, condition);
@@ -66,3 +66,12 @@ wakes up all processes in the wait queue `name` which are in TASK_INTERRUPTIBLE 
 wake_up_interruptible_sync(&name);
 ```
 wakes up all processes in the wait queue `name` which are in TASK_INTERRUPTIBLE state and runs them on the CPU before returning.
+
+## Usage 
+1. cd driver/waitqueue
+2. sudo make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi-
+3. sudo insmod static_waitqueue.ko / dynamic_waitqueue.ko
+4. Check dmesg log using `dmesg` command
+5. sudo su -> sudo cat /dev/static_wait_queue_devfile
+6. echo "" > /dev/static_wait_queue_devfile
+7. Check dmesg log using `dmesg` command 

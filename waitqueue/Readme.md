@@ -45,4 +45,24 @@ Puts the process to sleep (TASK_KILLABLE) until the condition is true or a fatal
 
 ## Waking up
 
+### 1. wake_up
+```c
+wake_up(&name);
+```
+wakes up **ONLY** one processes from the wait queue which is non-interruptible sleep `name`.
+### 2. wake_up_all
+```c
+wake_up_all(&name);
+```
+wakes up all process in the wait queue.
 
+### 3. wake_up_interruptible
+```c
+wake_up_interruptible(&name);
+```
+wakes up all processes in the wait queue `name` which are in TASK_INTERRUPTIBLE state
+### 4. wake_up_interruptible_sync
+```c
+wake_up_interruptible_sync(&name);
+```
+wakes up all processes in the wait queue `name` which are in TASK_INTERRUPTIBLE state and runs them on the CPU before returning.

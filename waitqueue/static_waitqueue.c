@@ -164,7 +164,7 @@ r_class:
 
 static void __exit remove_waitqueue(void)
 {
-    flag_queue = 2;
+    flag_queue = 3;
     wake_up_interruptible(&wait_queue_task);
     device_destroy(dev_class, dev_num);
     class_destroy(dev_class);

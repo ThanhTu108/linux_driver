@@ -50,7 +50,7 @@ struct file_operations my_fops =
     .release = release_fops,
 };
 
-static int wait_function(void* )
+static int wait_function(void* unused)
 {
     while(1)
     {
@@ -101,10 +101,11 @@ static ssize_t read_fops(struct file* file, char __user* buf, size_t len, loff_t
 }
 static ssize_t write_fops(struct file* file, const char __user* buf, size_t len, loff_t* off)
 {
-    if(copy_from_user(buf, data, sizeof(data)))
+    if(copy_from_user(data, buf, sizeof(data)))
     {
         pr_err("Write: Err\n");
     }
+    pr_info("Write: %s", data);
     flag_queue = 2;
     wake_up_interruptible(&dynamic_queue);
     return sizeof(data);
@@ -126,7 +127,7 @@ static int __init create_dynamic_waitqueue(void)
     if(IS_ERR(dev_class))
     {
         pr_err("Cannot create struct class\n");
-        goto r_class;q
+        goto r_class;
     }
 
     dev_file = device_create(dev_class, NULL, dev_num, NULL, "dynamic_waitqueue_file");

@@ -1,5 +1,4 @@
-obj-m +=static_waitqueue.o 
-obj-m +=dynamic_waitqueue.o
+obj-m +=ex_sysfs.o 
 
 ifdef ARCH
 	KDIR := /home/tu/BBG/tmp/lib/modules/6.1.83/build

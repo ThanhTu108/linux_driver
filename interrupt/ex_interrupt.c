@@ -13,6 +13,11 @@
 //sysfs
 #include <linux/sysfs.h>
 #include <linux/kobject.h> 
+//interrupts
+#include <linux/interrupt.h>
+#include <asm/io.h>
+
+#define IRQ_NO 11
 
 //file operations
 static int __init create_itr_ex(void);
@@ -37,7 +42,12 @@ static struct kobject* my_kobj;
         // 		 const char *buf, size_t count);
 static ssize_t sys_show(struct kobject* kobj, struct kobj_attribute* attr, char* buf);
 static ssize_t sys_store(struct kobject* kobj, struct kobj_attribute* attr, const char* buf, size_t count);
-
+static irqreturn_t irq_handler(int irq, void* dev_id)
+{
+    pr_info("Call irq");
+    val++;
+    return IRQ_HANDLED;
+}
 
 //create attribute
 //kobject_parent = kernel_kobj -> /sys/kernel/****/val_itr_sys
@@ -65,12 +75,14 @@ static int release_fops(struct inode* inode, struct file* file)
 static ssize_t read_fops(struct file* file, char __user* user_buf, size_t len, loff_t* off)
 {
     pr_info("Read function\n");
+    // asm("int $0x3B");
+    generic_handle_irq(IRQ_NO);
     return 0;
 }
 static ssize_t write_fops(struct file* file, const char __user* user_buf, size_t len, loff_t* off)
 {
     pr_info("Write function\n");
-    return 0;
+    return len;
 }
 
 static ssize_t sys_show(struct kobject* kobj, struct kobj_attribute* attr, char* buf)
@@ -118,9 +130,15 @@ static int __init create_itr_ex(void)
         pr_err("Cannot create sysfs file......\n");
         goto r_sysfs;
     }
-
+    if(request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "ex_interrupt", (void*)irq_handler))
+    {
+        pr_err("Cannot register irq\n");
+        goto r_irq;
+    }
     pr_info("Interrupt ex done\n");
     return 0;
+r_irq:
+    free_irq(IRQ_NO, (void*)(irq_handler));
 r_sysfs:
     kobject_put(my_kobj);
     sysfs_remove_file(kernel_kobj, &attr_sysfs.attr);
@@ -134,6 +152,7 @@ r_class:
 
 static void __exit remove_itr_ex(void)
 {
+    free_irq(IRQ_NO,(void*)(irq_handler));
     kobject_put(my_kobj);
     sysfs_remove_file(kernel_kobj, &attr_sysfs.attr);
     device_destroy(dev_class, dev_num);

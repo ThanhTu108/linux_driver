@@ -9,8 +9,8 @@ This is simple linux kernel module that demonstrates how to use interrupt handli
 ## Usage
 1. cd driver/interrupt
 2. sudo make 
-3. sudo insmod interrupt.ko
+3. sudo insmod ex_interrupt.ko
 4. Trigger the interrupt (e.g., by cat the device file). (ex_interrupt is triggered on read operation and using top half handler to handle the interrupt)
 5. check kernel log: dmesg
-6. sudo rmmod interrupt
+6. sudo rmmod ex_interrupt
 

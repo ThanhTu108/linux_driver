@@ -16,8 +16,8 @@
 //interrupts
 #include <linux/interrupt.h>
 #include <asm/io.h>
-
-#define IRQ_NO 11
+#include <linux/irq.h>
+#define IRQ_NO 51
 
 //file operations
 static int __init create_itr_ex(void);
@@ -76,7 +76,9 @@ static ssize_t read_fops(struct file* file, char __user* user_buf, size_t len, l
 {
     pr_info("Read function\n");
     // asm("int $0x3B");
+    // irq_handler(IRQ_NO, NULL);
     generic_handle_irq(IRQ_NO);
+    // irq_set_irqchip_state(IRQ_NO, IRQCHIP_STATE_PENDING, true);
     return 0;
 }
 static ssize_t write_fops(struct file* file, const char __user* user_buf, size_t len, loff_t* off)
@@ -111,7 +113,8 @@ static int __init create_itr_ex(void)
         pr_err("Cannot add device to system\n");
         goto r_class;
     }
-    dev_class = class_create(THIS_MODULE, "itrrupt_class");
+    // dev_class = class_create(THIS_MODULE, "itrrupt_class");
+    dev_class = class_create(THIS_MODULE,"itrrupt_class");
     if(IS_ERR(dev_class))
     {
         pr_err("Create struct class err\n");
@@ -133,7 +136,8 @@ static int __init create_itr_ex(void)
     if(request_irq(IRQ_NO, irq_handler, IRQF_SHARED, "ex_interrupt", (void*)irq_handler))
     {
         pr_err("Cannot register irq\n");
-        goto r_irq;
+        goto r_sysfs;
+        // return -1;
     }
     pr_info("Interrupt ex done\n");
     return 0;
@@ -143,10 +147,11 @@ r_sysfs:
     kobject_put(my_kobj);
     sysfs_remove_file(kernel_kobj, &attr_sysfs.attr);
 r_device:
+    device_destroy(dev_class, dev_num);
     class_destroy(dev_class);
 r_class:
-    unregister_chrdev_region(dev_num, 1);
     cdev_del(&my_cdev);
+    unregister_chrdev_region(dev_num, 1);
     return -1;
 }
 

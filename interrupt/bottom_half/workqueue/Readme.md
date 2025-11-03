@@ -63,3 +63,20 @@ Return 0 if work was already on a queue, non-zero otherwise. <br>
 - int flush_work(struct work_struct* work);
 - void flush_scheduled_work(void);
 
+### Dynamic Global Workqueue
+1. **Initialize work structure** <br>
+```c
+struct work_struct workqueue;
+```
+2. **Initialize func** <br>
+```c
+void workqueue_fn(struct work_struct* work);
+```
+3. **Initialize work queue using dynamic method** <br>
+Put function into __init section
+```c
+INIT_WORK(&workqueue, workqueue_fn);
+```
+
+
+

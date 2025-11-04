@@ -78,5 +78,26 @@ Put function into __init section
 INIT_WORK(&workqueue, workqueue_fn);
 ```
 
+### Owner workqueue
+1. **Create and destroy workqueue**
+```c
+struct workqueue_struct* create_workqueue(const char* name);
+```
+- where:
+    - name: name of the workqueue <br>
+Return pointer to workqueue structure. <br>
 
+if you want to create only a single thread in the workqueue, you can use: <br>
+```c
+struct workqueue_struct* create_singlethread_workqueue(const char* name);
+```
+- where:
+    - name: name of the workqueue <br>
+Return pointer to workqueue structure. <br>
 
+```c
+#define create_workqueue(name)                    
+        alloc_workqueue("%s", WQ_MEM_RECLAIM, 1, (name))
+#define create_singlethread_workqueue(name)       
+        alloc_workqueue("%s", WQ_UNBOUND | WQ_MEM_RECLAIM, 1, (name))
+```

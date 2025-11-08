@@ -282,6 +282,11 @@ Iterates over each node in 1 macro call, and get the struct pointer directly. <b
 
 Another variant that is safe against removal of list entry during the iteration:
 ```c
+#define list_for_each_entry_safe(pos, n, head, member)                \
+    for (pos = list_first_entry(head, typeof(*pos), member),          \
+         n = list_next_entry(pos, member);                            \
+         &pos->member != (head);                                      \
+         pos = n, n = list_next_entry(n, member))
 list_for_each_entry_safe(pos, n, head, member);
 ```
 - where

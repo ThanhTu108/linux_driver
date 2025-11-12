@@ -35,7 +35,7 @@ static struct cdev my_cdev;
 static struct kobject* my_kobj;
 
 //thread
-static struct task_struct* thread_1;
+static struct task_struct* my_thread;
 //Linklist
 LIST_HEAD(my_list);
 struct my_node
@@ -56,9 +56,13 @@ static ssize_t sys_show(struct kobject* kobj, struct kobj_attribute* attr, char*
 static ssize_t sys_store(struct kobject* kobj, struct kobj_attribute* attr, const char* buf, size_t count);
 struct kobj_attribute my_attr = __ATTR(val_ex_thread, 0660, sys_show, sys_store);
 
+//workqueue 
 static struct workqueue_struct* own_wq;
 static void work_fn(struct work_struct* work);
 DECLARE_WORK(my_work, work_fn);
+
+//thread function
+static int thread_fn(void* pv);
 struct file_operations my_fops = 
 {
     .owner = THIS_MODULE,
@@ -83,6 +87,17 @@ static irqreturn_t irq_handler(int irq, void* dev_id)
     pr_info("Call irq\n");
     queue_work(own_wq, &my_work);
     return IRQ_HANDLED;
+}
+static int thread_fn(void* pv)
+{
+    //thread_should_stop return true if call thread_stop
+    while(!kthread_should_stop())
+    {
+        pr_info("Thread is running\n");
+        msleep(2000);
+    }
+    pr_info("Thread is stopping\n");
+    return 0;
 }
 
 static int open_fops(struct inode* inode, struct file* file)
@@ -128,7 +143,7 @@ static ssize_t write_fops(struct file* file, const char __user* user_buf, size_t
 static ssize_t sys_show(struct kobject* kobj, struct kobj_attribute* attr, char* buf)
 {
     pr_info("SYS_SHOW: READ\n");
-    return sprintf(buf, "%d", value_sys);
+    return sprintf(buf, "%d\n", value_sys);
 }
 static ssize_t sys_store(struct kobject* kobj, struct kobj_attribute* attr,const char* buf, size_t count)
 {
@@ -148,14 +163,14 @@ static int __init _create_thread_function(void)
     dev_class = class_create(THIS_MODULE, "thread_class");
     if(IS_ERR(dev_class))
     {
-        pr_info("Cannot create struct class\n");
+        pr_err("Cannot create struct class\n");
         goto r_class;
     }
 
     dev_file = device_create(dev_class, NULL, dev_num, NULL, "thread_device");
     if(IS_ERR(dev_file))
     {
-        pr_info("Cannot create struct class\n");
+        pr_err("Cannot create struct class\n");
         goto r_device;
     }
 
@@ -178,6 +193,24 @@ static int __init _create_thread_function(void)
         goto r_sysfs;
     }
     own_wq = create_workqueue("own_wq");
+
+    my_thread = kthread_run(thread_fn, NULL, "my_thread_ex");
+    if(IS_ERR(my_thread))
+    {
+        pr_err("Create thread error! \n");
+        goto r_device;
+    }
+
+    // my_thread = kthread_create(thread_fn, NULL, "my_thread_ex");
+    // if(my_thread)
+    // {
+    //     wake_up_process(my_thread);
+    // }
+    // else
+    // {
+    //     pr_err("Create thread error! \n");
+    //     goto r_device;
+    // }
     pr_info("insert linklist irq thread done");
     return 0;
 
@@ -203,6 +236,7 @@ static void __exit __remove_thread_function(void)
         list_del(&cur->list);
         kfree(cur);
     }
+    kthread_stop(my_thread);
     destroy_workqueue(own_wq);
     free_irq(IRQ_NO, (void*)irq_handler);
     sysfs_remove_file(my_kobj, &my_attr.attr);

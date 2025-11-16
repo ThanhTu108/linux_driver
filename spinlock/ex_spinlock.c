@@ -161,15 +161,23 @@ static int __init create_spinlock_ex(void)
     //     goto r_device;
     // }
     thread_2 = kthread_run(thread_2_fn, NULL, "thread_2");
+<<<<<<< HEAD
     if(thread_2)
     {
         pr_info("Thread 2 successful\n");
     }
     else
+=======
+    if(IS_ERR(thread_2))
+>>>>>>> 3006bba6121ba4f6a38d2094fbecb99e3550099f
     {
         pr_err("Create thread 2 fail\n");
         goto r_device;
     }
+<<<<<<< HEAD
+=======
+    pr_info("Thread 2 successful\n");
+>>>>>>> 3006bba6121ba4f6a38d2094fbecb99e3550099f
     my_kobj = kobject_create_and_add("val_sys_spin_lock", kernel_kobj);
     if(sysfs_create_file(my_kobj, &my_attr.attr))
     {

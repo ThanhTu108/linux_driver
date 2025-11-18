@@ -1,6 +1,7 @@
 .PHONY: all clean
 
 obj-m +=ex_spinlock.o
+obj-m +=rw_spinlock.o
 ARCH = arm
 KDIR := /home/tu/BBG/tmp/lib/modules/6.1.83/build
 CROSS_COMPILE = arm-linux-gnueabi-

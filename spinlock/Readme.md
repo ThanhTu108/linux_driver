@@ -98,3 +98,4 @@ static irqreturn_t irq_handler(int IRQ, void* dev_id)
         spin_unlock_irq(&etx_spinlock);
         tasklet_schedule(tasklet);
 }
+```

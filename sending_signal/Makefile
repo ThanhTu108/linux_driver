@@ -1,9 +1,9 @@
 .PHONY: all clean
 
-obj-m +=ex_spinlock.o
-obj-m +=rw_spinlock.o
+obj-m +=send_signal.o
+
 ARCH = arm
-KDIR := /home/tu/BBG/tmp/lib/modules/6.1.83/build
+KDIR:=/home/tu/BBG/tmp/lib/modules/6.1.83/build
 CROSS_COMPILE = arm-linux-gnueabi-
 all:
 	make -C $(KDIR) M=$(shell pwd) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) modules

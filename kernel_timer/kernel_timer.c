@@ -80,7 +80,7 @@ static ssize_t sys_store(struct kobject* kobj, struct kobj_attribute* attr, cons
 }
 void timer_callback(struct timer_list* timer)
 {
-    pr_info("Timer execute\n");
+    pr_info("Timer execute: %d\n", count++);
     mod_timer(&my_timer, jiffies + msecs_to_jiffies(TIMEOUT));
 }
 

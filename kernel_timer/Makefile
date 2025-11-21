@@ -1,6 +1,7 @@
 .PHONY: all clean
 
 obj-m +=kernel_timer.o
+obj-m +=hr_timer.o
 
 ARCH = arm
 KDIR:=/home/tu/BBG/tmp/lib/modules/6.1.83/build

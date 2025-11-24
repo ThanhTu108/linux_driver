@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 obj-m +=ex_exportsymbol.o
-# obj-m +=dynamic_completion.o
+obj-m +=ex_extern_symbol.o
 ARCH = arm
 KDIR := /home/tu/BBG/tmp/lib/modules/6.1.83/build
 CROSS_COMPILE = arm-linux-gnueabi-

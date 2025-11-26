@@ -6,6 +6,9 @@
 //misc device
 #include <linux/miscdevice.h>
 
+//global value
+static int val_sys_1 = 0;
+static int val_sys_2 = 0;
 
 //global prototype
 static int __init cre_misc_device(void);
@@ -14,6 +17,46 @@ static int open_fops(struct inode* inode, struct file* file);
 static int release_fops(struct inode* inode, struct file* file);
 static ssize_t read_fops(struct file* file, char __user* buf, size_t len, loff_t* off);
 static ssize_t write_fops(struct file* file, const char __user* buf, size_t len, loff_t* off);
+
+
+//function in sys
+static ssize_t value1_show(struct device* dev, struct device_attribute* attr, char* buf);
+static ssize_t value1_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t count);
+static ssize_t value2_show(struct device* dev, struct device_attribute* attr, char* buf);
+static ssize_t value2_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t count);
+
+
+//sys
+//create sys value
+DEVICE_ATTR_RW(value1); // dev_attr_value1
+/*
+#define DEVICE_ATTR_RW(_name) \
+	struct device_attribute dev_attr_##_name = __ATTR_RW(_name)
+
+#define __ATTR_RW(_name) __ATTR(_name, 0644, _name##_show, _name##_store)
+=> function must be name_show or name_store
+
+
+struct device_attribute my_attr = __ATTR(name, 0644, name_show, name_store);
+*/
+DEVICE_ATTR_RW(value2);
+
+static struct attribute *my_attr[] =
+{
+    &dev_attr_value1.attr,
+    &dev_attr_value2.attr,
+    NULL,
+};
+
+static const struct attribute_group my_group = 
+{
+    .attrs = my_attr,
+};
+static const struct attribute_group *my_groups[] = 
+{
+    &my_group,
+    NULL,
+};
 
 static struct file_operations my_fops =
 {
@@ -29,6 +72,7 @@ struct miscdevice my_miscdev =
     .minor = MISC_DYNAMIC_MINOR, 
     .name = "misc_device_example",
     .fops = &my_fops,
+    .groups = my_groups,
 };
 
 static int open_fops(struct inode* inode, struct file* file)
@@ -52,6 +96,31 @@ static ssize_t write_fops(struct file* file, const char __user* buf, size_t len,
     return len;
 }
 
+// static int val_sys_1 = 0;
+// static int val_sys_2 = 0;
+static ssize_t value1_show(struct device* dev, struct device_attribute* attr, char* buf)
+{
+    pr_info("Show 1\n");
+    return sprintf(buf, "Value 1: %d\n", val_sys_1);
+}
+static ssize_t value1_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t count)
+{
+    pr_info("Store 1\n");
+    sscanf(buf, "%d", &val_sys_1);
+    return count;
+}
+static ssize_t value2_show(struct device* dev, struct device_attribute* attr, char* buf)
+{
+    pr_info("Show_2\n");
+    return sprintf(buf, "Value 1: %d\n", val_sys_2);
+}
+static ssize_t value2_store(struct device* dev, struct device_attribute* attr, const char* buf, size_t count)
+{
+    
+    pr_info("Store 2\n");
+    sscanf(buf, "%d", &val_sys_2);
+    return count;
+}
 
 static int __init cre_misc_device(void)
 {

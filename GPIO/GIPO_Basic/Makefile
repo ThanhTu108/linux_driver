@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 obj-m +=gpio_ex_init_exit.o
-
+obj-m +=gpiod_ex.o
 ARCH = arm
 KDIR:=/home/tu/BBG/tmp/lib/modules/6.1.83/build
 CROSS_COMPILE = arm-linux-gnueabi-

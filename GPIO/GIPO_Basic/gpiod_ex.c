@@ -11,6 +11,7 @@
 #include <linux/gpio.h>
 #define GPIO_60 12  // số GPIO
 
+
 // global variables
 dev_t dev_num;
 static struct class *dev_class;

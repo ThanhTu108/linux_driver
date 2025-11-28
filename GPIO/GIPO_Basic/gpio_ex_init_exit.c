@@ -13,7 +13,7 @@
 #include <linux/gpio.h>
 
 //Define
-#define GPIO_60 (60)
+#define GPIO_12 (12)
 
 //global variable
 dev_t dev_num = 0;
@@ -52,7 +52,7 @@ static int release_fops(struct inode* inode, struct file* file)
 static ssize_t read_fops(struct file* file, char __user* user_buf, size_t len, loff_t* off)
 {
     uint8_t gpio_state = 0;
-    gpio_state = gpio_get_value(GPIO_60);
+    gpio_state = gpio_get_value(GPIO_12);
     len = 1; 
     if(copy_to_user(user_buf, &gpio_state, len))
     {
@@ -71,11 +71,11 @@ static ssize_t write_fops(struct file* file, const char __user* user_buf, size_t
     pr_info("Set gpio_60 = %c\n", value[0]);
     if(value[0] == '1' || value[0] == 1)
     {
-        gpio_set_value(GPIO_60, 1);
+        gpio_set_value(GPIO_12, 1);
     }
     else if(value[0] == '0' || value[0] == 0)
     {
-        gpio_set_value(GPIO_60, 0);
+        gpio_set_value(GPIO_12, 0);
     }
     return len;
 }
@@ -106,24 +106,24 @@ static int __init ex_gpio_initexit(void)
         pr_err("Cannot create device file\n");
         goto r_device;
     }
-    if(gpio_is_valid(GPIO_60) == false)
+    if(gpio_is_valid(GPIO_12) == false)
     {
-        pr_err("GPIO %d is not valid", GPIO_60);
+        pr_err("GPIO %d is not valid", GPIO_12);
         goto r_device;
     }
-    pr_info("GPIO %d is valid", GPIO_60);
+    pr_info("GPIO %d is valid", GPIO_12);
     
-    if(gpio_request(GPIO_60, "debug_gpio60") < 0)
+    if(gpio_request(GPIO_12, "debug_gpio60") < 0)
     {
-        pr_err("Err request gpio %d\n", GPIO_60);
+        pr_err("Err request gpio %d\n", GPIO_12);
         goto r_gpio;
     }
-    gpio_direction_output(GPIO_60, 0);
-    gpio_export(GPIO_60, false);
+    gpio_direction_output(GPIO_12, 0);
+    gpio_export(GPIO_12, false);
     pr_info("Insert gpio basic done\n");
     return 0;
 r_gpio:
-    gpio_free(GPIO_60);
+    gpio_free(GPIO_12);
 r_device:
     device_destroy(dev_class, dev_num);
 r_class:
@@ -134,8 +134,8 @@ r_class:
 }
 static void __exit rmv_gpio_initexit(void)
 {
-    gpio_unexport(GPIO_60);
-    gpio_free(GPIO_60);
+    gpio_unexport(GPIO_12);
+    gpio_free(GPIO_12);
     device_destroy(dev_class, dev_num);
     class_destroy(dev_class);
     cdev_del(&my_cdev);

@@ -8,8 +8,8 @@
 #include <linux/fs.h>
 #include <linux/cdev.h>
 #include <linux/gpio/consumer.h>
-
-#define GPIO_60 60  // số GPIO
+#include <linux/gpio.h>
+#define GPIO_60 12  // số GPIO
 
 // global variables
 dev_t dev_num;
@@ -56,25 +56,24 @@ static ssize_t read_fops(struct file *file, char __user *user_buf, size_t len, l
     return 1; // trả về 1 byte
 }
 
-static ssize_t write_fops(struct file *file, const char __user *user_buf, size_t len, loff_t *off)
+static ssize_t write_fops(struct file* file, const char __user* user_buf, size_t len, loff_t* off)
 {
-    char buf[2] = {0};
-    if (len > 1) len = 1;
-    if (copy_from_user(buf, user_buf, len)) {
-        pr_err("Failed to copy data from user\n");
-        return -EFAULT;
+    uint8_t value[10] = {0};
+    if(copy_from_user(&value[0], user_buf, len))
+    {
+        pr_err("Write fail\n");
     }
-
-    if (buf[0] == '1')
+    pr_info("Set gpio_60 = %c\n", value[0]);
+    if(value[0] == '1' || value[0] == 1)
+    {
         gpiod_set_value(my_gpio_60, 1);
-    else if (buf[0] == '0')
+    }
+    else if(value[0] == '0' || value[0] == 0)
+    {
         gpiod_set_value(my_gpio_60, 0);
-    else
-        pr_err("Invalid value, use '0' or '1'\n");
-
+    }
     return len;
 }
-
 // init
 static int __init gpiod_driver_init(void)
 {
@@ -108,14 +107,27 @@ static int __init gpiod_driver_init(void)
     }
 
     // lấy descriptor GPIO 60
-    my_gpio_60 = gpiod_get(NULL, "gpio_60_debug", GPIOD_OUT_LOW);
-    if (IS_ERR(my_gpio_60)) {
-        pr_err("Failed to get GPIO 60 descriptor\n");
-        ret = PTR_ERR(my_gpio_60);
-        goto destroy_device;
+    // my_gpio_60 = gpiod_get(NULL, "gpio_60_debug", GPIOD_OUT_LOW);
+    my_gpio_60 = gpio_to_desc(GPIO_60);
+    if (!my_gpio_60) 
+    {
+        pr_err("Failed to get GPIO descriptor\n");
+        return -ENODEV;
     }
 
-    gpiod_export(my_gpio_60, false); // export sysfs nếu muốn debug
+// request trước khi direction
+    if (gpio_request(GPIO_60, "debug_gpio60") < 0) {
+        pr_err("Failed to request GPIO\n");
+        return -EBUSY;
+    }
+    gpiod_direction_output(my_gpio_60, 1);
+    // if (IS_ERR(my_gpio_60)) {
+    //     pr_err("Failed to get GPIO 60 descriptor\n");
+    //     ret = PTR_ERR(my_gpio_60);
+    //     goto destroy_device;
+    // }
+
+    gpiod_export(my_gpio_60, true); // export sysfs nếu muốn debug
     pr_info("GPIO 60 driver initialized\n");
     return 0;
 

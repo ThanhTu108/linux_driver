@@ -1,0 +1,9 @@
+/ {
+	gpiod_devicce {
+		compatible = "gpiod, gpio12";
+		status = "okay";
+		led-gpios = <&gpio1 12 0>;
+		label = "test_gpiod_12";
+		val = <1>;
+	};
+};

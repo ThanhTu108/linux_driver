@@ -1,166 +1,288 @@
-#include <linux/kernel.h>
-#include <linux/init.h>
 #include <linux/module.h>
+#include <linux/init.h>
 #include <linux/err.h>
-#include <linux/uaccess.h>  // copy_to_user, copy_from_user
-#include <linux/device.h>
-#include <linux/kdev_t.h>
-#include <linux/fs.h>
-#include <linux/cdev.h>
+#include <linux/platform_device.h>
+#include <linux/of_device.h>
+#include <linux/property.h>
+#include <linux/mod_devicetable.h>
+
+//gpiod
 #include <linux/gpio/consumer.h>
-#include <linux/gpio.h>
-#define GPIO_60 12  // số GPIO
+#include <linux/fs.h>
+#include <linux/kdev_t.h>
+#include <linux/cdev.h>
+#include <linux/sysfs.h>
+#include <linux/kobject.h>
+#include <linux/proc_fs.h>
 
-
-// global variables
-dev_t dev_num;
-static struct class *dev_class;
+//global variables
+    //gpiod
+uint8_t gpio_status = 0;
+static struct gpio_desc* my_led = NULL;
+dev_t dev_num = 0;
+static struct class* dev_class;
 static struct cdev my_cdev;
+static struct kobject* my_kobj;
+static struct proc_dir_entry *proc_file;
 
-// descriptor GPIO
-static struct gpio_desc *my_gpio_60;
-
-// file operations prototypes
-static int open_fops(struct inode *inode, struct file *file);
-static int release_fops(struct inode *inode, struct file *file);
-static ssize_t read_fops(struct file *file, char __user *user_buf, size_t len, loff_t *off);
-static ssize_t write_fops(struct file *file, const char __user *user_buf, size_t len, loff_t *off);
-
-// file operations
-static struct file_operations my_fops = {
-    .owner = THIS_MODULE,
-    .open = open_fops,
-    .release = release_fops,
-    .read = read_fops,
-    .write = write_fops,
+//global protocol
+static int gpiod_probe(struct platform_device* pdev);
+static int gpiod_remove(struct platform_device* pdev);
+static struct of_device_id my_driver_id[] = 
+{
+    {
+        .compatible = "gpiod, gpio12",
+    },
+    {}
+};
+MODULE_DEVICE_TABLE(of, my_driver_id);
+static struct platform_driver my_driver = 
+{
+    .probe = gpiod_probe,
+    .remove = gpiod_remove,
+    .driver = 
+    {
+        .name = "my_driver_gpiod",
+        .of_match_table = my_driver_id,
+    },
 };
 
-static int open_fops(struct inode *inode, struct file *file)
+    //fops
+static int open_fops(struct inode* inode, struct file* file);
+static int release_fops(struct inode* inode, struct file* file);
+static ssize_t read_fops(struct file* file, char __user* buf, size_t len, loff_t* off);
+static ssize_t write_fops(struct file* file, const char __user* buf, size_t len, loff_t* off);
+    //proc_fs
+static int open_proc(struct inode* inode, struct file* file);
+static int release_proc(struct inode* inode, struct file* file);
+static ssize_t read_proc(struct file* file, char __user* buf, size_t len, loff_t* off);
+static ssize_t write_proc(struct file* file, const char __user* buf, size_t len, loff_t* off);
+
+    //kobj
+static ssize_t sys_show(struct kobject* kobj, struct kobj_attribute* attr, char* buf);
+static ssize_t sys_store(struct kobject* kobj, struct kobj_attribute* attr, const char* buf, size_t count);
+struct kobj_attribute my_attr = __ATTR(val_sys_dt, 0660, sys_show, sys_store);
+
+static struct file_operations my_fops = 
 {
-    pr_info("GPIO device opened\n");
+    .owner = THIS_MODULE,
+    .open = open_fops,
+    .read = read_fops, 
+    .write = write_fops,
+    .release = release_fops, 
+};
+
+static struct proc_ops my_proc = 
+{
+    .proc_open = open_proc,
+    .proc_read = read_proc, 
+    .proc_write = write_proc,
+    .proc_release = release_proc, 
+};
+
+
+
+static int open_fops(struct inode* inode, struct file* file)
+{
+    pr_info("OPEN FOPS\n");
     return 0;
 }
-
-static int release_fops(struct inode *inode, struct file *file)
+static int release_fops(struct inode* inode, struct file* file)
 {
-    pr_info("GPIO device closed\n");
+    pr_info("RELEASE FOPS\n");
     return 0;
 }
-
-static ssize_t read_fops(struct file *file, char __user *user_buf, size_t len, loff_t *off)
+static ssize_t read_fops(struct file* file, char __user* buf, size_t len, loff_t* off)
 {
-    uint8_t value = gpiod_get_value(my_gpio_60);
-    if (copy_to_user(user_buf, &value, 1)) {
-        pr_err("Failed to copy GPIO value to user\n");
-        return -EFAULT;
+    len = 1;
+    gpio_status = gpiod_get_value(my_led);
+    pr_info("Status led fops: %d", gpio_status);
+    if(copy_to_user(buf, &gpio_status, len))
+    {
+        pr_err("Cannot read\n");
     }
-    return 1; // trả về 1 byte
+    return 0;
 }
-
-static ssize_t write_fops(struct file* file, const char __user* user_buf, size_t len, loff_t* off)
+static ssize_t write_fops(struct file* file, const char __user* buf, size_t len, loff_t* off)
 {
     uint8_t value[10] = {0};
-    if(copy_from_user(&value[0], user_buf, len))
+    if(copy_from_user(&value[0], buf, len))
     {
-        pr_err("Write fail\n");
+        pr_err("Cannot write\n");
     }
-    pr_info("Set gpio_60 = %c\n", value[0]);
-    if(value[0] == '1' || value[0] == 1)
+    pr_info("Set gpio fops: %c\n", value[0]);
+    if(value[0] == '1')
     {
-        gpiod_set_value(my_gpio_60, 1);
+        gpiod_set_value(my_led, 1);
     }
-    else if(value[0] == '0' || value[0] == 0)
+    else if(value[0] == '0')
     {
-        gpiod_set_value(my_gpio_60, 0);
+        gpiod_set_value(my_led, 0);
+    }
+    else 
+    {
+        pr_info("Value err\n");
     }
     return len;
 }
-// init
-static int __init gpiod_driver_init(void)
+    //proc_fs
+static int open_proc(struct inode* inode, struct file* file)
 {
-    int ret;
-
-    // allocate char device
-    ret = alloc_chrdev_region(&dev_num, 0, 1, "gpiod60_dev");
-    if (ret < 0) {
-        pr_err("Failed to allocate char device\n");
-        return ret;
-    }
-
-    cdev_init(&my_cdev, &my_fops);
-    ret = cdev_add(&my_cdev, dev_num, 1);
-    if (ret < 0) {
-        pr_err("Failed to add cdev\n");
-        goto unregister_chrdev;
-    }
-
-    dev_class = class_create(THIS_MODULE, "gpiod60_class");
-    if (IS_ERR(dev_class)) {
-        pr_err("Failed to create class\n");
-        ret = PTR_ERR(dev_class);
-        goto del_cdev;
-    }
-
-    if (IS_ERR(device_create(dev_class, NULL, dev_num, NULL, "gpiod60"))) {
-        pr_err("Failed to create device file\n");
-        ret = -1;
-        goto destroy_class;
-    }
-
-    // lấy descriptor GPIO 60
-    // my_gpio_60 = gpiod_get(NULL, "gpio_60_debug", GPIOD_OUT_LOW);
-    my_gpio_60 = gpio_to_desc(GPIO_60);
-    if (!my_gpio_60) 
-    {
-        pr_err("Failed to get GPIO descriptor\n");
-        return -ENODEV;
-    }
-
-// request trước khi direction
-    if (gpio_request(GPIO_60, "debug_gpio60") < 0) {
-        pr_err("Failed to request GPIO\n");
-        return -EBUSY;
-    }
-    gpiod_direction_output(my_gpio_60, 1);
-    // if (IS_ERR(my_gpio_60)) {
-    //     pr_err("Failed to get GPIO 60 descriptor\n");
-    //     ret = PTR_ERR(my_gpio_60);
-    //     goto destroy_device;
-    // }
-
-    gpiod_export(my_gpio_60, true); // export sysfs nếu muốn debug
-    pr_info("GPIO 60 driver initialized\n");
+    pr_info("OPEN PROC\n");
     return 0;
-
-destroy_device:
-    device_destroy(dev_class, dev_num);
-destroy_class:
-    class_destroy(dev_class);
-del_cdev:
-    cdev_del(&my_cdev);
-unregister_chrdev:
-    unregister_chrdev_region(dev_num, 1);
-    return ret;
 }
-
-// exit
-static void __exit gpiod_driver_exit(void)
+static int release_proc(struct inode* inode, struct file* file)
 {
-    gpiod_set_value(my_gpio_60, 0); // tắt LED trước khi free
-    gpiod_unexport(my_gpio_60);
-    gpiod_put(my_gpio_60);
-
-    device_destroy(dev_class, dev_num);
-    class_destroy(dev_class);
-    cdev_del(&my_cdev);
-    unregister_chrdev_region(dev_num, 1);
-
-    pr_info("GPIO 60 driver removed\n");
+    pr_info("RELEASE PROC\n");
+    return 0;
+}
+static ssize_t read_proc(struct file* file, char __user* buf, size_t len, loff_t* off)
+{
+    len = 1;
+    gpio_status = gpiod_get_value(my_led);
+    pr_info("Status led proc: %d", gpio_status);
+    if(copy_to_user(buf, &gpio_status, len))
+    {
+        pr_err("Cannot read\n");
+    }
+    return 0;
+}
+static ssize_t write_proc(struct file* file, const char __user* buf, size_t len, loff_t* off)
+{
+    uint8_t value[10] = {0};
+    if(copy_from_user(&value[0], buf, len))
+    {
+        pr_err("Cannot write\n");
+    }
+    pr_info("Set gpio proc: %c\n", value[0]);
+    if(value[0] == '1')
+    {
+        gpiod_set_value(my_led, 1);
+    }
+    else if(value[0] == '0')
+    {
+        gpiod_set_value(my_led, 0);
+    }
+    else 
+    {
+        pr_info("Value err\n");
+    }
+    return len;
 }
 
-module_init(gpiod_driver_init);
-module_exit(gpiod_driver_exit);
+static ssize_t sys_show(struct kobject* kobj, struct kobj_attribute* attr, char* buf)
+{
 
+    pr_info("SYS_SHOW: READ\n");
+    gpio_status = gpiod_get_value(my_led);
+    return sprintf(buf, "Gpio_status_sys: %d\n", gpio_status);
+}
+static ssize_t sys_store(struct kobject* kobj, struct kobj_attribute* attr, const char* buf, size_t count)
+{
+    pr_info("SYS_STORE: WRITE\n");
+    sscanf(buf, "%hhd", &gpio_status);
+    gpiod_set_value(my_led, gpio_status);
+    return count;
+}
+
+static int gpiod_probe(struct platform_device* pdev)
+{
+    struct device* dev = &pdev->dev;
+    const char* label;
+    int my_value, ret;
+    pr_info("Probe function\n");
+    if(device_property_present(dev, "label") == false)
+    {
+        pr_err("'Label' not found\n");
+        return -1;
+    }
+    if(device_property_present(dev, "val") == false)
+    {
+        pr_err("'Val' not found");
+        return -1;
+    }
+    ret = device_property_read_string(dev, "label", &label);
+    if(ret)
+    {
+        pr_err("Cannot read string 'label'\n");
+        return -1;
+    }
+    ret = device_property_read_u32(dev, "val", &my_value);
+    if(ret)
+    {
+        pr_err("Cannot read value 'val'\n");
+        return -1;
+    }
+    pr_info("Labels: %s\n", label);
+    pr_info("Value: %d\n", my_value);
+    //init gpio
+    my_led = gpiod_get(dev, "led", GPIOD_OUT_LOW);
+    if(IS_ERR(my_led))
+    {
+        pr_info("Cannot get descriptor gpio\n");
+        goto r_gpio;
+    }
+    //create cdev, device, class, sysfs, proc
+    if(alloc_chrdev_region(&dev_num, 0, 1, "gpiod_num") < 0)
+    {
+        pr_info("Cannot create major, minor\n");
+        return -1;
+    }
+    pr_info("MAJOR(%d), MINOR(%d) \n", MAJOR(dev_num), MINOR(dev_num));
+    cdev_init(&my_cdev, &my_fops);
+    if(cdev_add(&my_cdev, dev_num, 1) < 0)
+    {
+        pr_err("Cannot add device to system\n");
+        goto r_class;
+    }
+    dev_class = class_create(THIS_MODULE, "gpiod_class");
+    if(IS_ERR(dev_class))
+    {
+        pr_err("Cannot create struct class\n");
+        goto r_class;
+    }
+    if(IS_ERR(device_create(dev_class, NULL, dev_num, NULL, "gpiod_device")))
+    {
+        pr_err("Cannot create device file\n");
+        goto r_device;
+    }
+    my_kobj = kobject_create_and_add("gpiod_sysfs", kernel_kobj);
+    if(sysfs_create_file(my_kobj, &my_attr.attr))
+    {
+        pr_err("Cannot create sysfs file\n");
+        goto r_sysfs;
+    }
+    proc_file = proc_create("my_led", 0660, NULL, &my_proc);
+    if(proc_file == NULL)
+    {
+        pr_err("Cannot create /proc/my_led\n");
+        goto r_gpio;
+    }
+    pr_info("Create probe done\n");
+    return 0;
+r_gpio:
+    gpiod_put(my_led);
+r_sysfs:
+    kobject_put(my_kobj);
+    sysfs_remove_file(my_kobj, &my_attr.attr);
+    device_destroy(dev_class, dev_num);
+r_device:
+    class_destroy(dev_class);
+r_class:
+    unregister_chrdev_region(dev_num, 1);
+    return -1;
+}
+static int gpiod_remove(struct platform_device* pdev)
+{
+    gpiod_put(my_led);
+    kobject_put(my_kobj);
+    sysfs_remove_file(my_kobj, &my_attr.attr);
+    proc_remove(proc_file);
+    device_destroy(dev_class, dev_num);
+    class_destroy(dev_class);
+    unregister_chrdev_region(dev_num, 1);
+    return 0;
+}
+module_platform_driver(my_driver);
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Thanh Tu");
-MODULE_DESCRIPTION("Char device driver to control GPIO 60 using gpiod API");
+MODULE_AUTHOR("thanhtu10803@gmail.com");

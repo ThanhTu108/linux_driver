@@ -7,7 +7,7 @@
 
 static int dt_probe(struct platform_device* pdev);
 static int dt_remove(struct platform_device* pdev);
-
+ 
 static struct of_device_id my_drive_id[] = 
 {
     {

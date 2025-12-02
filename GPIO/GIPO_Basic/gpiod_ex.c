@@ -31,7 +31,7 @@ static int gpiod_remove(struct platform_device* pdev);
 static struct of_device_id my_driver_id[] = 
 {
     {
-        .compatible = "gpiod, gpio8_11";
+        .compatible = "gpiod, gpio8_11",
     },
     {}
 };

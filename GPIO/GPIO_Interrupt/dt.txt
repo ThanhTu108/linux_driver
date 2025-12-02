@@ -1,0 +1,30 @@
+
+//config pinmux for p8_12 using macrro AM33XX_IOPAD 
+&am33xx_pinmux {
+	p8_12_irq: pinmux_p8_12 {
+		pinctrl-single,pins = <
+			// P8_12(PIN_INPUT_PULLUP|MUX_MODE7),
+			AM33XX_IOPAD(0x030, PIN_INPUT_PULLUP|MUX_MODE7)
+		>;
+	};
+};
+// gpio8_11 is GPIO1 13
+/ {
+	gpiod_device {
+		compatible = "gpiod, gpio8_11";
+		status = "okay";
+		led-gpios = <&gpio1 13 0>;
+		label = "test_gpiod_13";
+		val = <1>;
+	};
+	gpiod_device_irq {
+		compatible = "gpiod, gpio8_12";
+		status = "okay";
+		button-gpios = <&gpio1 12 1>;
+		interrupt-parent = <&gpio1>;
+		interrupts = <12 2>;	//IRQ_TYPE_EDGE_FALLING
+		pinctrl-names = "default";
+		pinctrl-0 = <&p8_12_irq>;
+		debounce-ms = <100>;
+	};
+};

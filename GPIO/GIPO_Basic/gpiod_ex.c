@@ -31,7 +31,7 @@ static int gpiod_remove(struct platform_device* pdev);
 static struct of_device_id my_driver_id[] = 
 {
     {
-        .compatible = "gpiod, gpio12",
+        .compatible = "gpiod, gpio8_11",
     },
     {}
 };
@@ -263,8 +263,8 @@ static int gpiod_probe(struct platform_device* pdev)
 r_gpio:
     gpiod_put(my_led);
 r_sysfs:
-    kobject_put(my_kobj);
     sysfs_remove_file(my_kobj, &my_attr.attr);
+    kobject_put(my_kobj);
     device_destroy(dev_class, dev_num);
 r_device:
     class_destroy(dev_class);
@@ -275,8 +275,8 @@ r_class:
 static int gpiod_remove(struct platform_device* pdev)
 {
     gpiod_put(my_led);
-    kobject_put(my_kobj);
     sysfs_remove_file(my_kobj, &my_attr.attr);
+    kobject_put(my_kobj);
     proc_remove(proc_file);
     device_destroy(dev_class, dev_num);
     class_destroy(dev_class);

@@ -9,11 +9,35 @@
 #include <linux/kdev_t.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
-
+#include <linux/delay.h>
 //define cmd ssd1306
 #define SINGLE_CMD 0x00    //dc = 1, co = 0
 #define SINGLE_DATA 0x40   //dc = 1, co = 1
-
+enum ssd1306_cmd 
+{
+    SSD1306_DISPLAY_ON = 0xAF,  //normal mode
+    SSD1306_DISPLAY_OFF = 0xAE, //sleep mode
+    SSD1306_SET_CLOCK_DIV_RATIO = 0XD5, //default = 0x80
+    SSD1306_SET_MULTIPLEX_RATIO = 0xA8, //default 128x64 = 63, 128x32 = 31
+    SSD1306_SET_DISPLAY_OFFSET = 0xD3,  //00 - 63
+    SSD1306_SET_DISPLAY_START_LINE = 0x40,  //0x40 - 0x7F (00-63)
+    SSD1306_SET_CHARGE_PUMP = 0x8D, //and send 0x14 to enable, 0x10: disable
+    SSD1306_MEMORY_MODE = 0x20, //0x00: Horizontal, 0x01: Vertical
+    //left <-> right
+    SSD1306_REMAP_NORMAL = 0xA0,    
+    SSD1306_REMAP_REVERSE = 0xA1,
+    // top <-> bottom
+    SSD1306_SCAN_DIRECTION_NORMAL = 0xC0,
+    SSD1306_SCAN_DIRECTION_REVERSE = 0xC8,
+    SSD1306_SET_COM_PIN = 0xDA, //64: 0x12, 32: 0x02
+    SSD1306_SET_CONTRAST = 0x81,
+    SSD1306_SET_PRE_CHARGE = 0xD9, //normally 0xF1 (1111: phase 2 pre-charge, 0001: phase 1 Discharge)
+    SSD1306_SET_VCOMH_DESELECT = 0xDB,   //A[6:4] (USE 0X20)
+    SSD1306_ENTIRE_DISPLAY_ON  = 0xA5, // Entire display on (don't care Ram)
+    SSD1306_ENTIRE_DISPLAY_OFF = 0xA4, //Entire display off
+    SSD1306_NORMAL_DISPLAY = 0xA6,  //Ram = 1 -> pixel on
+    SSD1306_INVERSE_DISPLAY = 0xA7, //ram = 0 -> pixel off
+};
 
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id);
 static void ssd_remove(struct i2c_client* client);
@@ -58,6 +82,11 @@ struct ssd1306_t
     struct kobject* my_kobj;
     // struct 
 };
+
+// //function write
+static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len);
+static void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd);
+
 //fops
 static int my_open(struct inode* inode, struct file* file);
 static int my_release(struct inode* inode, struct file* file);
@@ -88,6 +117,9 @@ static int my_release(struct inode* inode, struct file* file)
 static ssize_t my_read(struct file* file, char __user* buf, size_t len, loff_t* off)
 {
     pr_info("READ\n");
+    pr_info("TEST SSD\n");
+    struct ssd1306_t* ssd = file->private_data;
+    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
     return 0;
 }
 static ssize_t my_write(struct file* file, const char __user* buf, size_t len, loff_t* off)
@@ -96,8 +128,60 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
     return len;
 }
 
-// //function write
-// static void i2c_write(bool is_cmd, )
+static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len)
+{
+    int ret = i2c_master_send(ssd->client, buf, len);
+    return ret;
+}
+
+static void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd)
+{
+    unsigned char buf[2] = {SINGLE_CMD, cmd};
+    int ret = i2c_write(ssd, buf, 2);
+}
+static void ssd1306_send_data(struct ssd1306_t* ssd, unsigned char* data)
+{
+    unsigned char buf[2] = {SINGLE_DATA, data};
+    int ret = i2c_write(ssd, buf, 2);
+}
+static void ssd1306_init(struct ssd1306_t* ssd)
+{
+    msleep(100);
+    ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
+    //set retio
+    ssd1306_send_cmd(ssd, SSD1306_SET_MULTIPLEX_RATIO);
+    ssd1306_send_cmd(ssd, 0x3F);
+    //set display off set
+    ssd1306_send_cmd(ssd, SSD1306_SET_DISPLAY_OFFSET);
+    ssd1306_send_cmd(ssd, 0x00);
+    //Set display start line
+    ssd1306_send_cmd(ssd, SSD1306_SET_DISPLAY_START_LINE);
+    //memory mode 
+    ssd1306_send_cmd(ssd, SSD1306_MEMORY_MODE);
+    ssd1306_send_cmd(ssd, 0x00);
+    // Remap disable
+    ssd1306_send_cmd(ssd, SSD1306_REMAP_NORMAL);
+    //scan com
+    ssd1306_send_cmd(ssd, SSD1306_SCAN_DIRECTION_NORMAL);
+    //set compin hw
+    ssd1306_send_cmd(ssd, SSD1306_SET_COM_PIN);
+    ssd1306_send_cmd(ssd, 0x12);
+    //set contrast
+    ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
+    ssd1306_send_cmd(ssd, 0x7F);
+    // entire display off
+    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
+    //set normal display
+    ssd1306_send_cmd(ssd, SSD1306_NORMAL_DISPLAY);
+    // set osc frequency
+    ssd1306_send_cmd(ssd, SSD1306_SET_CLOCK_DIV_RATIO);
+    ssd1306_send_cmd(ssd, 0x80);
+    //charge pump
+    ssd1306_send_cmd(ssd, SSD1306_SET_CHARGE_PUMP);
+    ssd1306_send_cmd(ssd, 0x14);    //enable
+    ssd1306_send_cmd(ssd, SSD1306_DISPLAY_ON);
+    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
+}
 
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
 {   
@@ -110,6 +194,7 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
         pr_err("Cannot allocate memory for ssd\n");
         return -1;
     }
+    ssd->client = client;
     i2c_set_clientdata(client, ssd);
     int ret;
     if(device_property_present(dev, "height") == false)
@@ -158,6 +243,7 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
         pr_err("Cannot add device to system\n");
         goto r_class;
     }
+    ssd1306_init(ssd);
     pr_info("Insert done\n");
     return 0;
 r_device:
@@ -170,6 +256,8 @@ r_class:
 static void ssd_remove(struct i2c_client* client)
 {
     struct ssd1306_t* ssd = i2c_get_clientdata(client);
+    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
+    ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
     device_destroy(ssd->dev_class, ssd->dev_num);
     class_destroy(ssd->dev_class);
     cdev_del(&ssd->my_cdev);

@@ -107,6 +107,9 @@ struct file_operations my_fops =
 static int my_open(struct inode* inode, struct file* file)
 {
     pr_info("OPEN\n");
+    struct ssd1306_t* ssd;
+    ssd = container_of(inode->i_cdev, struct ssd1306_t, my_cdev);
+    file->private_data = ssd;
     return 0;
 }
 static int my_release(struct inode* inode, struct file* file)
@@ -170,7 +173,7 @@ static void ssd1306_init(struct ssd1306_t* ssd)
     ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
     ssd1306_send_cmd(ssd, 0x7F);
     // entire display off
-    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
+    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
     //set normal display
     ssd1306_send_cmd(ssd, SSD1306_NORMAL_DISPLAY);
     // set osc frequency
@@ -180,7 +183,7 @@ static void ssd1306_init(struct ssd1306_t* ssd)
     ssd1306_send_cmd(ssd, SSD1306_SET_CHARGE_PUMP);
     ssd1306_send_cmd(ssd, 0x14);    //enable
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_ON);
-    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
+    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
 }
 
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)

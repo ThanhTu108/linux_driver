@@ -1,6 +1,7 @@
 .PHONY: all clean
 
-obj-m +=ssd1306.o
+obj-m :=ssd_driver.o
+ssd_driver-objs :=test_ssd.o ssd1306.o 
 ARCH = arm
 KDIR:=/home/tu/BBG/tmp/lib/modules/6.1.83/build
 CROSS_COMPILE = arm-linux-gnueabi-

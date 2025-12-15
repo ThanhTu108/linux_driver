@@ -23,6 +23,8 @@ enum ssd1306_cmd
     SSD1306_SET_DISPLAY_START_LINE = 0x40,  //0x40 - 0x7F (00-63)
     SSD1306_SET_CHARGE_PUMP = 0x8D, //and send 0x14 to enable, 0x10: disable
     SSD1306_MEMORY_MODE = 0x20, //0x00: Horizontal, 0x01: Vertical
+    SSD1306_SET_COLUMN_ADDR = 0x21,
+    SSD1306_SET_PAGE_ADDR = 0X22,
     //left <-> right
     SSD1306_REMAP_NORMAL = 0xA0,    
     SSD1306_REMAP_REVERSE = 0xA1,
@@ -82,11 +84,11 @@ struct ssd1306_t
     struct kobject* my_kobj;
     // struct 
 };
-
 // //function write
 static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len);
 static void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd);
-
+static void ssd1306_send_data(struct ssd1306_t* ssd, uint8_t data);
+static void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y);
 //fops
 static int my_open(struct inode* inode, struct file* file);
 static int my_release(struct inode* inode, struct file* file);
@@ -128,6 +130,18 @@ static ssize_t my_read(struct file* file, char __user* buf, size_t len, loff_t* 
 static ssize_t my_write(struct file* file, const char __user* buf, size_t len, loff_t* off)
 {
     pr_info("WRITE\n");
+    char k_buf[32];
+    int page, col;
+    struct ssd1306_t* ssd = file->private_data;
+    if(copy_from_user(k_buf, buf, len))
+    {
+        pr_err("Cannot write\n");
+        return -1;
+    }
+    k_buf[len] = '\0';
+    sscanf(k_buf, "%d %d", &col, &page);
+    ssd1306_set_page_col(ssd, col, page);
+    ssd1306_send_data(ssd, 0xFF);
     return len;
 }
 
@@ -136,16 +150,23 @@ static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len
     int ret = i2c_master_send(ssd->client, buf, len);
     return ret;
 }
-
 static void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd)
 {
     unsigned char buf[2] = {SINGLE_CMD, cmd};
     int ret = i2c_write(ssd, buf, 2);
+    if(ret < 0)
+    {
+        pr_err("Cannot send\n");
+    }
 }
-static void ssd1306_send_data(struct ssd1306_t* ssd, unsigned char* data)
+static void ssd1306_send_data(struct ssd1306_t* ssd, uint8_t data)
 {
     unsigned char buf[2] = {SINGLE_DATA, data};
     int ret = i2c_write(ssd, buf, 2);
+    if(ret < 0)
+    {
+        pr_err("Cannot send\n");
+    }
 }
 static void ssd1306_init(struct ssd1306_t* ssd)
 {
@@ -162,6 +183,7 @@ static void ssd1306_init(struct ssd1306_t* ssd)
     //memory mode 
     ssd1306_send_cmd(ssd, SSD1306_MEMORY_MODE);
     ssd1306_send_cmd(ssd, 0x00);
+    ssd1306_set_page_col(ssd, 0, 0);
     // Remap disable
     ssd1306_send_cmd(ssd, SSD1306_REMAP_NORMAL);
     //scan com
@@ -182,10 +204,37 @@ static void ssd1306_init(struct ssd1306_t* ssd)
     //charge pump
     ssd1306_send_cmd(ssd, SSD1306_SET_CHARGE_PUMP);
     ssd1306_send_cmd(ssd, 0x14);    //enable
+    //when use charge pump, must use pre charge
+    ssd1306_send_cmd(ssd, SSD1306_SET_PRE_CHARGE);
+    ssd1306_send_cmd(ssd, 0xF1);
+    int page, col;
+    for(page = 0; page <=7; page++)
+    {
+        for(col = 0; col <=127; col++)
+        {
+            ssd1306_send_data(ssd, 0x00);
+        }
+    }
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_ON);
-    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
 }
-
+static void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y)
+{
+    
+    if(x > 127)
+    {
+        x = 127;
+    }
+    if(y > 7)
+    {
+        y = 7;
+    }
+    ssd1306_send_cmd(ssd, SSD1306_SET_COLUMN_ADDR);
+    ssd1306_send_cmd(ssd, x);
+    ssd1306_send_cmd(ssd, 127);
+    ssd1306_send_cmd(ssd, SSD1306_SET_PAGE_ADDR);
+    ssd1306_send_cmd(ssd, y);
+    ssd1306_send_cmd(ssd, 7);
+}
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
 {   
     struct device* dev = &(client->dev);
@@ -259,7 +308,15 @@ r_class:
 static void ssd_remove(struct i2c_client* client)
 {
     struct ssd1306_t* ssd = i2c_get_clientdata(client);
-    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
+    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
+    int page, col;
+    for(page = 0; page <=7; page++)
+    {
+        for(col = 0; col <=127; col++)
+        {
+            ssd1306_send_data(ssd, 0x00);
+        }
+    }
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
     device_destroy(ssd->dev_class, ssd->dev_num);
     class_destroy(ssd->dev_class);

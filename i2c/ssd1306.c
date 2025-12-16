@@ -3,7 +3,7 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/i2c.h>
-
+#include "font5x7.h"
 static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len)
 {
     int ret = i2c_master_send(ssd->client, buf, len);
@@ -95,4 +95,59 @@ void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y)
     ssd1306_send_cmd(ssd, SSD1306_SET_PAGE_ADDR);
     ssd1306_send_cmd(ssd, y);
     ssd1306_send_cmd(ssd, 7);
+}
+void ssd1306_clear(struct ssd1306_t* ssd)
+{
+    int page, col;
+    for(page = 0; page <=7; page++)
+    {
+        for(col = 0; col <=127; col++)
+        {
+            ssd1306_send_data(ssd, 0x00);
+        }
+    }
+    ssd1306_set_page_col(ssd, 0 , 0);
+}
+void ssd1306_write_integer(struct ssd1306_t* ssd, int num)
+{
+    if(num < 0 || num > 9)
+    {
+        return;
+    }
+    char id = num + '0';
+    id = char_to_idx(id);
+    for(int i = 0; i<5; i++)
+    {
+        pr_info("Index = %d",(id + i));
+        ssd1306_send_data(ssd, Font5x7[i + id]);
+    }
+}
+void ssd1306_write_string(struct ssd1306_t* ssd, char* str)
+{   
+    char* new_str;
+    new_str = kmalloc(strlen(str), GFP_KERNEL); 
+    if(new_str == NULL)
+    {
+        pr_err("Cannot alocate memory\n");
+    }
+    memset(new_str, 0, strlen(str) + 1);
+    strcpy(new_str, str);
+    pr_info("%s\n", new_str);
+    for(int i = 0; new_str[i] != '\0'; i++)
+    {
+        for(int j = 0; j < 5; j++)
+        {
+            int id = char_to_idx(new_str[i]);
+            pr_info("id_write string: %d\n", id);
+            ssd1306_send_data(ssd, Font5x7[j + id]);
+        }
+    }
+    kfree(new_str);
+}
+void ssd1306_write_space(struct ssd1306_t* ssd)
+{
+    for(int i = 0; i < 5; i++)
+        {
+            ssd1306_send_data(ssd, Font5x7[i]);
+        }
 }

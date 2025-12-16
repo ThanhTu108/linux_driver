@@ -14,7 +14,7 @@
 
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id);
 static void ssd_remove(struct i2c_client* client);
-
+int count = 0;
 static struct of_device_id ssd1306_driver_id[] = 
 {
     {
@@ -80,7 +80,11 @@ static ssize_t my_read(struct file* file, char __user* buf, size_t len, loff_t* 
     pr_info("READ\n");
     pr_info("TEST SSD\n");
     struct ssd1306_t* ssd = file->private_data;
-    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
+    count++;
+    if(count > 9) count = 0;
+    pr_info("Count = %d\n", count);
+    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
+    ssd1306_write_integer(ssd, count);
     return 0;
 }
 static ssize_t my_write(struct file* file, const char __user* buf, size_t len, loff_t* off)
@@ -88,6 +92,7 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
     pr_info("WRITE\n");
     char k_buf[32];
     int page, col;
+    int is_data = 0;
     struct ssd1306_t* ssd = file->private_data;
     if(copy_from_user(k_buf, buf, len))
     {
@@ -95,9 +100,26 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
         return -1;
     }
     k_buf[len] = '\0';
-    sscanf(k_buf, "%d %d", &col, &page);
-    ssd1306_set_page_col(ssd, col, page);
-    ssd1306_send_data(ssd, 0xFF);
+    if(k_buf[0] == 'C')
+    {
+        sscanf(k_buf, "C %d %d", &col, &page);
+        pr_info("Col = %d\t Page = %d \n", col, page);
+        ssd1306_set_page_col(ssd, col, page);
+    }
+    else if(k_buf[0] == 'D')
+    {
+        char str[32];
+        sscanf(k_buf, "D %s", str);
+        pr_info("k_buf: %s\n", str);
+        ssd1306_write_string(ssd, str);
+        is_data = 1;
+    }
+    else;
+    if(is_data)
+    {
+        ssd1306_write_space(ssd);
+        is_data = 0;
+    }
     return len;
 }
 
@@ -162,6 +184,7 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
         goto r_class;
     }
     ssd1306_init(ssd);
+    ssd1306_set_page_col(ssd, 0, 0);
     pr_info("Insert done\n");
     return 0;
 r_device:
@@ -175,14 +198,7 @@ static void ssd_remove(struct i2c_client* client)
 {
     struct ssd1306_t* ssd = i2c_get_clientdata(client);
     // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
-    int page, col;
-    for(page = 0; page <=7; page++)
-    {
-        for(col = 0; col <=127; col++)
-        {
-            ssd1306_send_data(ssd, 0x00);
-        }
-    }
+    ssd1306_clear(ssd);
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
     device_destroy(ssd->dev_class, ssd->dev_num);
     class_destroy(ssd->dev_class);

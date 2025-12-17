@@ -103,7 +103,7 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
     k_buf[len] = '\0';
     if(k_buf[0] == 'C')
     {
-        if(k_buf[1] = 'L')
+        if(k_buf[1] == 'L')
         {
             ssd1306_clear(ssd);
         }

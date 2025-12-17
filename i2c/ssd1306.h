@@ -53,6 +53,7 @@ void ssd1306_init(struct ssd1306_t* ssd);
 void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y);
 void ssd1306_clear(struct ssd1306_t* ssd);
 void ssd1306_write_integer(struct ssd1306_t* ssd, int num);
+void ssd1306_write_integer_8x8(struct ssd1306_t* ssd, int num);
 void ssd1306_write_string(struct ssd1306_t* ssd, char* str);
 void ssd1306_write_space(struct ssd1306_t* ssd);
 void ssd1306_draw_sawtooth(struct ssd1306_t* ssd);

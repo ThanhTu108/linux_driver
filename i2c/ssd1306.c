@@ -122,6 +122,21 @@ void ssd1306_write_integer(struct ssd1306_t* ssd, int num)
         ssd1306_send_data(ssd, Font5x7[i + id]);
     }
 }
+void ssd1306_write_integer_8x8(struct ssd1306_t* ssd, int num)
+{
+    if(num < 0 || num > 9)
+    {
+        return;
+    }
+    char id = num + '0';
+    id = char_to_idx8x8(id);
+    for(int i = 0; i<8; i++)
+    {
+        pr_info("Index = %d",(id + i));
+        ssd1306_send_data(ssd, Font8x8[i + id]);
+    }
+}
+
 void ssd1306_write_string(struct ssd1306_t* ssd, char* str)
 {   
     char* new_str;

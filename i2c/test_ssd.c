@@ -10,40 +10,11 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/delay.h>
-//define cmd ssd1306
-#define SINGLE_CMD 0x00    //dc = 1, co = 0
-#define SINGLE_DATA 0x40   //dc = 1, co = 1
-enum ssd1306_cmd 
-{
-    SSD1306_DISPLAY_ON = 0xAF,  //normal mode
-    SSD1306_DISPLAY_OFF = 0xAE, //sleep mode
-    SSD1306_SET_CLOCK_DIV_RATIO = 0XD5, //default = 0x80
-    SSD1306_SET_MULTIPLEX_RATIO = 0xA8, //default 128x64 = 63, 128x32 = 31
-    SSD1306_SET_DISPLAY_OFFSET = 0xD3,  //00 - 63
-    SSD1306_SET_DISPLAY_START_LINE = 0x40,  //0x40 - 0x7F (00-63)
-    SSD1306_SET_CHARGE_PUMP = 0x8D, //and send 0x14 to enable, 0x10: disable
-    SSD1306_MEMORY_MODE = 0x20, //0x00: Horizontal, 0x01: Vertical
-    SSD1306_SET_COLUMN_ADDR = 0x21,
-    SSD1306_SET_PAGE_ADDR = 0X22,
-    //left <-> right
-    SSD1306_REMAP_NORMAL = 0xA0,    
-    SSD1306_REMAP_REVERSE = 0xA1,
-    // top <-> bottom
-    SSD1306_SCAN_DIRECTION_NORMAL = 0xC0,
-    SSD1306_SCAN_DIRECTION_REVERSE = 0xC8,
-    SSD1306_SET_COM_PIN = 0xDA, //64: 0x12, 32: 0x02
-    SSD1306_SET_CONTRAST = 0x81,
-    SSD1306_SET_PRE_CHARGE = 0xD9, //normally 0xF1 (1111: phase 2 pre-charge, 0001: phase 1 Discharge)
-    SSD1306_SET_VCOMH_DESELECT = 0xDB,   //A[6:4] (USE 0X20)
-    SSD1306_ENTIRE_DISPLAY_ON  = 0xA5, // Entire display on (don't care Ram)
-    SSD1306_ENTIRE_DISPLAY_OFF = 0xA4, //Entire display off
-    SSD1306_NORMAL_DISPLAY = 0xA6,  //Ram = 1 -> pixel on
-    SSD1306_INVERSE_DISPLAY = 0xA7, //ram = 0 -> pixel off
-};
-
+#include "ssd1306.h"
+#include "font5x7.h"
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id);
 static void ssd_remove(struct i2c_client* client);
-
+int count = 0;
 static struct of_device_id ssd1306_driver_id[] = 
 {
     {
@@ -74,21 +45,6 @@ static struct  i2c_driver ssd1306_driver =
     .id_table = ssd1306_id,
 };
 
-struct ssd1306_t
-{
-    struct i2c_client* client;
-    dev_t dev_num;
-    struct class* dev_class;
-    // struct device* dev_file,
-    struct cdev my_cdev;
-    struct kobject* my_kobj;
-    // struct 
-};
-// //function write
-static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len);
-static void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd);
-static void ssd1306_send_data(struct ssd1306_t* ssd, uint8_t data);
-static void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y);
 //fops
 static int my_open(struct inode* inode, struct file* file);
 static int my_release(struct inode* inode, struct file* file);
@@ -124,7 +80,12 @@ static ssize_t my_read(struct file* file, char __user* buf, size_t len, loff_t* 
     pr_info("READ\n");
     pr_info("TEST SSD\n");
     struct ssd1306_t* ssd = file->private_data;
-    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
+    count++;
+    if(count > 9) count = 0;
+    pr_info("Count = %d\n", count);
+    // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
+    ssd1306_write_integer(ssd, count);
+    // ssd1306_draw_logo(ssd);
     return 0;
 }
 static ssize_t my_write(struct file* file, const char __user* buf, size_t len, loff_t* off)
@@ -132,6 +93,7 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
     pr_info("WRITE\n");
     char k_buf[32];
     int page, col;
+    int is_data = 0;
     struct ssd1306_t* ssd = file->private_data;
     if(copy_from_user(k_buf, buf, len))
     {
@@ -139,102 +101,29 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
         return -1;
     }
     k_buf[len] = '\0';
-    sscanf(k_buf, "%d %d", &col, &page);
-    ssd1306_set_page_col(ssd, col, page);
-    ssd1306_send_data(ssd, 0xFF);
+    if(k_buf[0] == 'C')
+    {
+        sscanf(k_buf, "C %d %d", &col, &page);
+        pr_info("Col = %d\t Page = %d \n", col, page);
+        ssd1306_set_page_col(ssd, col, page);
+    }
+    else if(k_buf[0] == 'D')
+    {
+        char str[32];
+        sscanf(k_buf, "D %s", str);
+        pr_info("k_buf: %s\n", str);
+        ssd1306_write_string(ssd, str);
+        is_data = 1;
+    }
+    else;
+    if(is_data)
+    {
+        ssd1306_write_space(ssd);
+        is_data = 0;
+    }
     return len;
 }
 
-static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len)
-{
-    int ret = i2c_master_send(ssd->client, buf, len);
-    return ret;
-}
-static void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd)
-{
-    unsigned char buf[2] = {SINGLE_CMD, cmd};
-    int ret = i2c_write(ssd, buf, 2);
-    if(ret < 0)
-    {
-        pr_err("Cannot send\n");
-    }
-}
-static void ssd1306_send_data(struct ssd1306_t* ssd, uint8_t data)
-{
-    unsigned char buf[2] = {SINGLE_DATA, data};
-    int ret = i2c_write(ssd, buf, 2);
-    if(ret < 0)
-    {
-        pr_err("Cannot send\n");
-    }
-}
-static void ssd1306_init(struct ssd1306_t* ssd)
-{
-    msleep(100);
-    ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
-    //set retio
-    ssd1306_send_cmd(ssd, SSD1306_SET_MULTIPLEX_RATIO);
-    ssd1306_send_cmd(ssd, 0x3F);
-    //set display off set
-    ssd1306_send_cmd(ssd, SSD1306_SET_DISPLAY_OFFSET);
-    ssd1306_send_cmd(ssd, 0x00);
-    //Set display start line
-    ssd1306_send_cmd(ssd, SSD1306_SET_DISPLAY_START_LINE);
-    //memory mode 
-    ssd1306_send_cmd(ssd, SSD1306_MEMORY_MODE);
-    ssd1306_send_cmd(ssd, 0x00);
-    ssd1306_set_page_col(ssd, 0, 0);
-    // Remap disable
-    ssd1306_send_cmd(ssd, SSD1306_REMAP_NORMAL);
-    //scan com
-    ssd1306_send_cmd(ssd, SSD1306_SCAN_DIRECTION_NORMAL);
-    //set compin hw
-    ssd1306_send_cmd(ssd, SSD1306_SET_COM_PIN);
-    ssd1306_send_cmd(ssd, 0x12);
-    //set contrast
-    ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
-    ssd1306_send_cmd(ssd, 0x7F);
-    // entire display off
-    ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
-    //set normal display
-    ssd1306_send_cmd(ssd, SSD1306_NORMAL_DISPLAY);
-    // set osc frequency
-    ssd1306_send_cmd(ssd, SSD1306_SET_CLOCK_DIV_RATIO);
-    ssd1306_send_cmd(ssd, 0x80);
-    //charge pump
-    ssd1306_send_cmd(ssd, SSD1306_SET_CHARGE_PUMP);
-    ssd1306_send_cmd(ssd, 0x14);    //enable
-    //when use charge pump, must use pre charge
-    ssd1306_send_cmd(ssd, SSD1306_SET_PRE_CHARGE);
-    ssd1306_send_cmd(ssd, 0xF1);
-    int page, col;
-    for(page = 0; page <=7; page++)
-    {
-        for(col = 0; col <=127; col++)
-        {
-            ssd1306_send_data(ssd, 0x00);
-        }
-    }
-    ssd1306_send_cmd(ssd, SSD1306_DISPLAY_ON);
-}
-static void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y)
-{
-    
-    if(x > 127)
-    {
-        x = 127;
-    }
-    if(y > 7)
-    {
-        y = 7;
-    }
-    ssd1306_send_cmd(ssd, SSD1306_SET_COLUMN_ADDR);
-    ssd1306_send_cmd(ssd, x);
-    ssd1306_send_cmd(ssd, 127);
-    ssd1306_send_cmd(ssd, SSD1306_SET_PAGE_ADDR);
-    ssd1306_send_cmd(ssd, y);
-    ssd1306_send_cmd(ssd, 7);
-}
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
 {   
     struct device* dev = &(client->dev);
@@ -296,6 +185,13 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
         goto r_class;
     }
     ssd1306_init(ssd);
+    ssd1306_set_page_col(ssd, 0, 0);
+    ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
+    // ssd1306_draw_bitmap(ssd, 10, 2, bitmap_smile_icon, 16, 16);
+    ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
+    ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
+    ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
+    ssd1306_draw_bitmap(ssd, 99, 2, bitmap_hotdog, 32, 32);
     pr_info("Insert done\n");
     return 0;
 r_device:
@@ -309,14 +205,7 @@ static void ssd_remove(struct i2c_client* client)
 {
     struct ssd1306_t* ssd = i2c_get_clientdata(client);
     // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_OFF);
-    int page, col;
-    for(page = 0; page <=7; page++)
-    {
-        for(col = 0; col <=127; col++)
-        {
-            ssd1306_send_data(ssd, 0x00);
-        }
-    }
+    ssd1306_clear(ssd);
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
     device_destroy(ssd->dev_class, ssd->dev_num);
     class_destroy(ssd->dev_class);

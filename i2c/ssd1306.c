@@ -151,3 +151,45 @@ void ssd1306_write_space(struct ssd1306_t* ssd)
             ssd1306_send_data(ssd, Font5x7[i]);
         }
 }
+
+void ssd1306_draw_sawtooth(struct ssd1306_t* ssd)
+{
+    ssd1306_clear(ssd);
+    ssd1306_set_page_col(ssd, 0, 0);
+    for(int i = 0; i < 127; i++)
+    {
+        ssd1306_send_data(ssd, bitmap_sawtooth[i]);
+    }   
+}
+
+void ssd1306_draw_smile_icon(struct ssd1306_t* ssd, uint8_t col, uint8_t page)
+{
+    ssd1306_set_page_col(ssd, col, page);
+    for(int i = 0; i < 16; i++)
+    {
+        ssd1306_send_data(ssd, bitmap_smile_icon[i]);
+    }
+    ssd1306_set_page_col(ssd, col, page+1);
+    for(int i = 0; i < 16; i++)
+    {
+        ssd1306_send_data(ssd, bitmap_smile_icon[16+i]);
+    }
+}
+
+void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const char* bitmap, uint8_t w, uint8_t h)
+{
+    int _tmp_page = h/8;
+    if(h%8 != 0)
+    {
+        _tmp_page++;
+    }
+    for(int i = 0; i < _tmp_page; i++)
+    {
+        ssd1306_set_page_col(ssd, col, page + i);
+        for(int j = 0; j < w; j++)
+        {
+            int idx = (i * w) + j; //get index
+            ssd1306_send_data(ssd, bitmap[idx]);
+        }
+    }
+}

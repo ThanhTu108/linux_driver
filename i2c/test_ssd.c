@@ -11,7 +11,7 @@
 #include <linux/device.h>
 #include <linux/delay.h>
 #include "ssd1306.h"
-
+#include "font5x7.h"
 static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id);
 static void ssd_remove(struct i2c_client* client);
 int count = 0;
@@ -85,6 +85,7 @@ static ssize_t my_read(struct file* file, char __user* buf, size_t len, loff_t* 
     pr_info("Count = %d\n", count);
     // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
     ssd1306_write_integer(ssd, count);
+    // ssd1306_draw_logo(ssd);
     return 0;
 }
 static ssize_t my_write(struct file* file, const char __user* buf, size_t len, loff_t* off)
@@ -185,6 +186,12 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
     }
     ssd1306_init(ssd);
     ssd1306_set_page_col(ssd, 0, 0);
+    ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
+    // ssd1306_draw_bitmap(ssd, 10, 2, bitmap_smile_icon, 16, 16);
+    ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
+    ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
+    ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
+    ssd1306_draw_bitmap(ssd, 99, 2, bitmap_hotdog, 32, 32);
     pr_info("Insert done\n");
     return 0;
 r_device:

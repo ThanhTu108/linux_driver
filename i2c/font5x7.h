@@ -101,7 +101,7 @@ static const char Font5x7[] = {
 	0x08, 0x1C, 0x2A, 0x08, 0x08 // <-
 };
 
-static const unsigned char Font8x8[] = {
+static const char Font8x8[] = {
     // 32 (Space)
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 
     // 33 ! (Đậm hơn)

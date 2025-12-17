@@ -55,8 +55,7 @@ void ssd1306_clear(struct ssd1306_t* ssd);
 void ssd1306_write_integer(struct ssd1306_t* ssd, int num);
 void ssd1306_write_integer_8x8(struct ssd1306_t* ssd, int num);
 void ssd1306_write_string(struct ssd1306_t* ssd, char* str);
+void ssd1306_write_string_8x8(struct ssd1306_t* ssd, char* str);
 void ssd1306_write_space(struct ssd1306_t* ssd);
-void ssd1306_draw_sawtooth(struct ssd1306_t* ssd);
-void ssd1306_draw_smile_icon(struct ssd1306_t* ssd, uint8_t col, uint8_t page);
 void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const char* bitmap, uint8_t h, uint8_t w);
 #endif

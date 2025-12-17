@@ -140,12 +140,11 @@ void ssd1306_write_integer_8x8(struct ssd1306_t* ssd, int num)
 void ssd1306_write_string(struct ssd1306_t* ssd, char* str)
 {   
     char* new_str;
-    new_str = kmalloc(strlen(str), GFP_KERNEL); 
+    new_str = kzalloc(strlen(str), GFP_KERNEL); 
     if(new_str == NULL)
     {
         pr_err("Cannot alocate memory\n");
     }
-    memset(new_str, 0, strlen(str) + 1);
     strcpy(new_str, str);
     pr_info("%s\n", new_str);
     for(int i = 0; new_str[i] != '\0'; i++)
@@ -159,36 +158,33 @@ void ssd1306_write_string(struct ssd1306_t* ssd, char* str)
     }
     kfree(new_str);
 }
+void ssd1306_write_string_8x8(struct ssd1306_t* ssd, char* str)
+{
+    char* new_str; 
+    new_str = kzalloc(strlen(str), GFP_KERNEL);
+    if(new_str == NULL)
+    {
+        pr_err("Cannot allocate memory\n");
+        return;
+    }
+    strcpy(new_str, str);
+    pr_info("%s\n", new_str);
+    for(int i = 0; new_str[i] != '\0'; i++)
+    {
+        int idx = char_to_idx8x8(str[i]);
+        for(int j = 0; j < 8; j++)
+        {
+            ssd1306_send_data(ssd, Font8x8[idx + j]);
+        }
+    }
+    kfree(new_str);
+}
 void ssd1306_write_space(struct ssd1306_t* ssd)
 {
     for(int i = 0; i < 5; i++)
         {
             ssd1306_send_data(ssd, Font5x7[i]);
         }
-}
-
-void ssd1306_draw_sawtooth(struct ssd1306_t* ssd)
-{
-    ssd1306_clear(ssd);
-    ssd1306_set_page_col(ssd, 0, 0);
-    for(int i = 0; i < 127; i++)
-    {
-        ssd1306_send_data(ssd, bitmap_sawtooth[i]);
-    }   
-}
-
-void ssd1306_draw_smile_icon(struct ssd1306_t* ssd, uint8_t col, uint8_t page)
-{
-    ssd1306_set_page_col(ssd, col, page);
-    for(int i = 0; i < 16; i++)
-    {
-        ssd1306_send_data(ssd, bitmap_smile_icon[i]);
-    }
-    ssd1306_set_page_col(ssd, col, page+1);
-    for(int i = 0; i < 16; i++)
-    {
-        ssd1306_send_data(ssd, bitmap_smile_icon[16+i]);
-    }
 }
 
 void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const char* bitmap, uint8_t w, uint8_t h)

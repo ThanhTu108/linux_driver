@@ -116,7 +116,7 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
         char str[32];
         sscanf(k_buf, "D %s", str);
         pr_info("k_buf: %s\n", str);
-        ssd1306_write_string(ssd, str);
+        ssd1306_write_string_8x8(ssd, str);
         is_data = 1;
     }
     else;

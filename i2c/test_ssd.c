@@ -190,13 +190,13 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
     }
     ssd1306_init(ssd);
     ssd1306_set_page_col(ssd, 0, 0);
-    // ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
-    // // ssd1306_draw_bitmap(ssd, 10, 2, bitmap_smile_icon, 16, 16);
-    // ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
-    // ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
-    // ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
-    // ssd1306_draw_bitmap(ssd, 99, 2, bitmap_hotdog, 32, 32);
-    // ssd1306_set_page_col(ssd, 10, 7);
+    ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
+    // ssd1306_draw_bitmap(ssd, 10, 2, bitmap_smile_icon, 16, 16);
+    ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
+    ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
+    ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
+    ssd1306_draw_bitmap(ssd, 99, 2, bitmap_hotdog, 32, 32);
+    ssd1306_set_page_col(ssd, 10, 7);
     ssd1306_write_integer_8x8(ssd, 0);
     pr_info("Insert done\n");
     return 0;

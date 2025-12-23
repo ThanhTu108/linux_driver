@@ -1,0 +1,11 @@
+
+&i2c2 {
+	clock-frequency = <400000>;
+	ssd1306@3c {
+		compatible = "solomon,ssd1306";
+		status = "okay";
+		reg = <0x3c>;
+		width = <128>;
+		height = <64>;
+	};
+};

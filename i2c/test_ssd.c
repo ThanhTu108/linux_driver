@@ -84,7 +84,7 @@ static ssize_t my_read(struct file* file, char __user* buf, size_t len, loff_t* 
     if(count > 9) count = 0;
     pr_info("Count = %d\n", count);
     // ssd1306_send_cmd(ssd, SSD1306_ENTIRE_DISPLAY_ON);
-    ssd1306_write_integer(ssd, count);
+    ssd1306_write_integer_8x8(ssd, count);
     // ssd1306_draw_logo(ssd);
     return 0;
 }
@@ -103,6 +103,10 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
     k_buf[len] = '\0';
     if(k_buf[0] == 'C')
     {
+        if(k_buf[1] == 'L')
+        {
+            ssd1306_clear(ssd);
+        }
         sscanf(k_buf, "C %d %d", &col, &page);
         pr_info("Col = %d\t Page = %d \n", col, page);
         ssd1306_set_page_col(ssd, col, page);
@@ -112,7 +116,7 @@ static ssize_t my_write(struct file* file, const char __user* buf, size_t len, l
         char str[32];
         sscanf(k_buf, "D %s", str);
         pr_info("k_buf: %s\n", str);
-        ssd1306_write_string(ssd, str);
+        ssd1306_write_string_8x8(ssd, str);
         is_data = 1;
     }
     else;
@@ -192,6 +196,8 @@ static int ssd_probe(struct i2c_client* client, const struct i2c_device_id* id)
     ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
     ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
     ssd1306_draw_bitmap(ssd, 99, 2, bitmap_hotdog, 32, 32);
+    ssd1306_set_page_col(ssd, 10, 7);
+    ssd1306_write_integer_8x8(ssd, 0);
     pr_info("Insert done\n");
     return 0;
 r_device:

@@ -204,3 +204,11 @@ void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const
         }
     }
 }
+
+void ssd1306_draw_menu(struct ssd1306_t* ssd)
+{
+    ssd1306_set_page_col(ssd, 0, 0);
+    ssd1306_write_string_8x8(ssd, "Contrast: ");
+    ssd1306_set_page_col(ssd, 0, 2);
+    ssd1306_write_string_8x8(ssd, "Invese: ");
+}

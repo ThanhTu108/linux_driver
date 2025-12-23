@@ -8,12 +8,13 @@
 #include <linux/delay.h>
 #include <linux/kthread.h>
 #include <linux/interrupt.h>    //interrupt for button
-#include <linux/wait.h>
+
 #include "ssd1306.h"
 #include "font5x7.h"
 #include <linux/sched.h>
 #include <linux/gpio/consumer.h>
-
+#include <linux/completion.h>
+#include <linux/atomic.h>
 //probe, remove i2c
 static int ssd1306_ui_probe(struct i2c_client* client, const struct i2c_device_id *id);
 static void ssd1306_ui_remove(struct i2c_client *client);
@@ -71,10 +72,10 @@ static struct i2c_driver my_ssd1306_ui =
 
 static struct task_struct* thread_ssd1306_ui;
 int thread_ssd1306_ui_fn(void* data);
-wait_queue_head_t wait_event;
 int flag = 0;
 int count = 0;
-
+static struct completion wait_event;
+atomic_t btn_val = ATOMIC_INIT(0);
 
 static int ssd_open(struct inode* inode, struct file* file);
 static int ssd_release(struct inode* inode, struct file* file);
@@ -129,8 +130,8 @@ static int ssd_release(struct inode* inode, struct file* file)
 static ssize_t ssd_read(struct file* file, char __user* buf, size_t len, loff_t* off)
 {
     pr_info("READ\n");
-    flag = 1;
-    wake_up_interruptible(&wait_event);
+    atomic_set(&btn_val, 1);
+    complete(&wait_event);
     return 0;
 }
 static ssize_t ssd_write(struct file* file, const char __user* buf, size_t len, loff_t* off)
@@ -148,8 +149,8 @@ int thread_ssd1306_ui_fn(void* data)
     pr_info("Wait read function\n");
     while(!kthread_should_stop())
     {
-        wait_event_interruptible(wait_event, flag!=0);
-        if(flag == 1)
+        wait_for_completion(&wait_event);
+        if(atomic_read(&btn_val) == 1)
         {
             // pr_info("Read is call\n");
             // if(count++ > 9)
@@ -157,15 +158,15 @@ int thread_ssd1306_ui_fn(void* data)
             //     count = 0;
             // }
             // ssd1306_write_integer_8x8(ssd, count);
+            pr_info("ssd1306 clear\n");
             ssd1306_clear(ssd);
-            // ssd1306_draw_menu(ssd);
         }
-        else if(flag == 3)
+        else if(atomic_read(&btn_val) == 2)
         {
             pr_info("Remove thread \n");
             return 0;
         }
-        flag = 0;
+        atomic_set(&btn_val, 0);
     }
     return 0;
 }
@@ -199,7 +200,7 @@ static int ssd1306_ui_probe(struct i2c_client* client, const struct i2c_device_i
         pr_err("Cannot add device to system\n");
         goto r_class;
     }
-    init_waitqueue_head(&wait_event);
+    init_completion(&wait_event);
     thread_ssd1306_ui = kthread_run(thread_ssd1306_ui_fn, (void*)ssd, "thread_draw_ui");
     if(IS_ERR(thread_ssd1306_ui))
     {
@@ -208,13 +209,14 @@ static int ssd1306_ui_probe(struct i2c_client* client, const struct i2c_device_i
     }
     ssd1306_init(ssd);
     ssd1306_set_page_col(ssd, 0, 0);
-    ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
-    ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
-    ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
-    ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
-    ssd1306_draw_bitmap(ssd, 97, 2, bitmap_hotdog, 32, 32);
-    ssd1306_set_page_col(ssd, 10, 7);
-    ssd1306_write_integer_8x8(ssd, 0);
+    // ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
+    // ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
+    // ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
+    // ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
+    // ssd1306_draw_bitmap(ssd, 97, 2, bitmap_hotdog, 32, 32);
+    // ssd1306_set_page_col(ssd, 10, 7);
+    // ssd1306_write_integer_8x8(ssd, 0);
+    ssd1306_draw_menu(ssd);
     return 0;
 r_device:
     class_destroy(ssd->dev_class);
@@ -226,8 +228,9 @@ r_class:
 static void ssd1306_ui_remove(struct i2c_client *client)
 {
     struct ssd1306_t* ssd = i2c_get_clientdata(client);
-    flag = 3;
-    wake_up_interruptible(&wait_event);
+    atomic_set(&btn_val, 2);
+    complete(&wait_event);
+    kthread_stop(thread_ssd1306_ui);
     ssd1306_clear(ssd);
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
     device_destroy(ssd->dev_class, ssd->dev_num);

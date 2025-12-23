@@ -99,6 +99,7 @@ void ssd1306_set_page_col(struct ssd1306_t* ssd, uint8_t x, uint8_t y)
 void ssd1306_clear(struct ssd1306_t* ssd)
 {
     int page, col;
+    ssd1306_set_page_col(ssd, 0 , 0);
     for(page = 0; page <=7; page++)
     {
         for(col = 0; col <=127; col++)
@@ -205,10 +206,29 @@ void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const
     }
 }
 
-void ssd1306_draw_menu(struct ssd1306_t* ssd)
+void ssd1306_draw_menu(struct ssd1306_t *ssd)
 {
+    /* Title */
     ssd1306_set_page_col(ssd, 0, 0);
-    ssd1306_write_string_8x8(ssd, "Contrast: ");
+    ssd1306_write_string_8x8(ssd, "   SSD1306 UI   ");
+    ssd1306_set_page_col(ssd, 0, 1);
+    ssd1306_write_string_8x8(ssd, "----------------");
+
+    /* Menu items */
     ssd1306_set_page_col(ssd, 0, 2);
-    ssd1306_write_string_8x8(ssd, "Invese: ");
+    ssd1306_write_string_8x8(ssd, "|->Contrast:   |");
+
+    ssd1306_set_page_col(ssd, 0, 3);
+    ssd1306_write_string_8x8(ssd, "|  Inverse:    |");
+
+    ssd1306_set_page_col(ssd, 0, 4);
+    ssd1306_write_string_8x8(ssd, "|  Rotate:     |");
+
+    ssd1306_set_page_col(ssd, 0, 5);
+    ssd1306_write_string_8x8(ssd, "|  Display:    |");
+
+    ssd1306_set_page_col(ssd, 0, 6);
+    ssd1306_write_string_8x8(ssd, "|     Exit     |");
+    ssd1306_set_page_col(ssd, 0, 7);
+    ssd1306_write_string_8x8(ssd, "----------------");
 }

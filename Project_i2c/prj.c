@@ -72,8 +72,6 @@ static struct i2c_driver my_ssd1306_ui =
 
 static struct task_struct* thread_ssd1306_ui;
 int thread_ssd1306_ui_fn(void* data);
-int flag = 0;
-int count = 0;
 static struct completion wait_event;
 atomic_t btn_val = ATOMIC_INIT(0);
 
@@ -130,7 +128,11 @@ static int ssd_release(struct inode* inode, struct file* file)
 static ssize_t ssd_read(struct file* file, char __user* buf, size_t len, loff_t* off)
 {
     pr_info("READ\n");
-    atomic_set(&btn_val, 1);
+    struct ssd1306_t* ssd = file->private_data;
+    pr_info("Prev_mode: %d\n", ssd->mode);
+    atomic_set(&btn_val, ((ssd->mode) + 1) % 5);
+    // pr_info("BTN_VAL: %d\n", (ssd->mode+1) % 5);
+    pr_info("BTN_VAL atomic: %d\n", atomic_read(&btn_val));
     complete(&wait_event);
     return 0;
 }
@@ -142,31 +144,24 @@ static ssize_t ssd_write(struct file* file, const char __user* buf, size_t len, 
 int thread_ssd1306_ui_fn(void* data)
 {
     struct ssd1306_t* ssd = (struct ssd1306_t*)data;
-    if (!ssd) {
+    if (!ssd) 
+    {
         pr_err("Error: Thread data is NULL\n");
         return -1;
     }
     pr_info("Wait read function\n");
+    enum menu_mode last = ssd->mode; 
     while(!kthread_should_stop())
     {
         wait_for_completion(&wait_event);
-        if(atomic_read(&btn_val) == 1)
+        enum menu_mode cur_mode = atomic_read(&btn_val);
+        if(cur_mode != last)
         {
-            // pr_info("Read is call\n");
-            // if(count++ > 9)
-            // {
-            //     count = 0;
-            // }
-            // ssd1306_write_integer_8x8(ssd, count);
-            pr_info("ssd1306 clear\n");
-            ssd1306_clear(ssd);
+            ssd1306_draw_mode(ssd, cur_mode);
         }
-        else if(atomic_read(&btn_val) == 2)
-        {
-            pr_info("Remove thread \n");
+        if (cur_mode == 10)
             return 0;
-        }
-        atomic_set(&btn_val, 0);
+        // atomic_set(&btn_val, 0);
     }
     return 0;
 }
@@ -228,7 +223,7 @@ r_class:
 static void ssd1306_ui_remove(struct i2c_client *client)
 {
     struct ssd1306_t* ssd = i2c_get_clientdata(client);
-    atomic_set(&btn_val, 2);
+    atomic_set(&btn_val, 10);
     complete(&wait_event);
     kthread_stop(thread_ssd1306_ui);
     ssd1306_clear(ssd);

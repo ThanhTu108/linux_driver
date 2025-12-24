@@ -205,7 +205,6 @@ void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const
         }
     }
 }
-
 void ssd1306_draw_menu(struct ssd1306_t *ssd)
 {
     /* Title */
@@ -213,22 +212,55 @@ void ssd1306_draw_menu(struct ssd1306_t *ssd)
     ssd1306_write_string_8x8(ssd, "   SSD1306 UI   ");
     ssd1306_set_page_col(ssd, 0, 1);
     ssd1306_write_string_8x8(ssd, "----------------");
-
     /* Menu items */
     ssd1306_set_page_col(ssd, 0, 2);
-    ssd1306_write_string_8x8(ssd, "|->Contrast:   |");
-
+    ssd1306_write_string_8x8(ssd, "|  Contrast:   |");
     ssd1306_set_page_col(ssd, 0, 3);
     ssd1306_write_string_8x8(ssd, "|  Inverse:    |");
-
     ssd1306_set_page_col(ssd, 0, 4);
     ssd1306_write_string_8x8(ssd, "|  Rotate:     |");
-
     ssd1306_set_page_col(ssd, 0, 5);
     ssd1306_write_string_8x8(ssd, "|  Display:    |");
-
     ssd1306_set_page_col(ssd, 0, 6);
     ssd1306_write_string_8x8(ssd, "|     Exit     |");
     ssd1306_set_page_col(ssd, 0, 7);
     ssd1306_write_string_8x8(ssd, "----------------");
+}
+
+
+static int mode_to_page(enum menu_mode mode)
+{
+    switch(mode)
+    {
+        case MODE_CONTRAST:
+            return 2;
+        case MODE_INVERSE:
+            return 3;
+        case MODE_ROTATE:
+            return 4;
+        case MODE_DISPLAY:
+            return 5;
+        case MODE_EXIT:
+            return 6;
+        default:
+            return -1;
+    }
+}
+
+void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode)
+{
+    if(mode == ssd->mode)
+    {
+        return;
+    }
+    int prev_mode = mode_to_page(ssd->mode);
+    if(prev_mode >= 0)
+    {
+        ssd1306_set_page_col(ssd, 8, prev_mode);
+        ssd1306_write_string_8x8(ssd, "  ");
+    }
+    int new_mode = mode_to_page(mode);
+    ssd1306_set_page_col(ssd, 8, new_mode);
+    ssd1306_write_string_8x8(ssd, "->");
+    ssd->mode = mode;
 }

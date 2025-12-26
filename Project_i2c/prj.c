@@ -18,6 +18,7 @@
 #include <linux/mod_devicetable.h>
 #include <linux/platform_device.h>
 #include <linux/property.h>
+#include <linux/delay.h>
 static int __init create_function(void);
 static void __exit rmv_function(void);
 //probe, remove i2c
@@ -87,7 +88,7 @@ struct button_t
     struct gpio_desc* btn_ssd;
     enum btn_type type;
     int irq;
-    enum menu_mode mode;
+    // enum menu_mode mode;
     struct ssd1306_t* ssd1306;
 };
 struct button_t btn[NUMBER_BUTTON];
@@ -99,7 +100,7 @@ static int ssd_open(struct inode* inode, struct file* file);
 static int ssd_release(struct inode* inode, struct file* file);
 static ssize_t ssd_read(struct file* file, char __user* buf, size_t len, loff_t* off);
 static ssize_t ssd_write(struct file* file, const char __user* buf, size_t len, loff_t* off);
-
+static void button_handler(struct button_t* button);
 struct file_operations my_fops = 
 {
     .owner = THIS_MODULE,
@@ -118,7 +119,6 @@ static irqreturn_t btn_irq(int irq, void* dev_id)
         return IRQ_HANDLED;
     }
     atomic_set(&ssd->last_btn, btn->type);
-    pr_info("btn_type: irq  %d\n", btn->type);
     complete(&ssd->event);
     return IRQ_HANDLED;
 }
@@ -217,6 +217,42 @@ static ssize_t ssd_write(struct file* file, const char __user* buf, size_t len, 
     pr_info("WRITE\n\n");
     return len;
 }
+static void button_handler(struct button_t* btn)
+{
+    struct ssd1306_t* ssd = btn->ssd1306;
+    pr_info("Check function\n");
+    pr_info("State: %d\n", ssd->state);
+    switch(ssd->state)
+    {
+        case(LOGO):
+            if(btn->type == BTN_SEL)
+            {
+                pr_info("Select\n");
+                ssd->state = SEL_MENU;
+                ssd1306_draw_menu(ssd);
+                msleep(100);
+            }
+            break;
+        case(SEL_MENU):
+            switch(btn->type)
+            {
+                case(BTN_UP):
+                    ssd1306_draw_mode(ssd, (ssd->mode+1)%5);
+                    break;
+                case(BTN_DW):
+                    ssd1306_draw_mode(ssd, (ssd->mode+ 5 - 1)%5);
+                    break;
+                case(BTN_BACK):
+                    ssd1306_draw_logo(ssd);
+                    ssd->state = LOGO;
+                    break;
+            }
+            // if(btn->tyo)
+            break;
+        default:
+            pr_info("DEFAULT\n");
+    }
+}
 int thread_ssd1306_ui_fn(void* data)
 {
     struct ssd1306_t* ssd = (struct ssd1306_t*)data;
@@ -237,9 +273,14 @@ int thread_ssd1306_ui_fn(void* data)
         //     ssd1306_draw_mode(ssd, cur_mode);
         // }
         int val = atomic_read(&ssd->last_btn);
+        pr_info("Val: %d\n", val);
+        if(val <= NUMBER_BUTTON)
+        {
+            pr_info("Go to: \n");
+            button_handler(&btn[val]);
+        }
         if (val == 10)
             return 0;
-        pr_info("btn_type: %d\n", val);
         // atomic_set(&btn_type, 0);
     }
     return 0;
@@ -274,7 +315,7 @@ static int ssd1306_ui_probe(struct i2c_client* client, const struct i2c_device_i
         pr_err("Cannot add device to system\n");
         goto r_class;
     }
-    btn->ssd1306 = ssd;
+    ssd->state = LOGO;
     for(int i = 0; i< NUMBER_BUTTON; i++)
     {
         btn[i].ssd1306 = ssd;
@@ -288,15 +329,8 @@ static int ssd1306_ui_probe(struct i2c_client* client, const struct i2c_device_i
         goto r_device;
     }
     ssd1306_init(ssd);
-    ssd1306_set_page_col(ssd, 0, 0);
-    // ssd1306_draw_bitmap(ssd, 0, 0, bitmap_sawtooth, 128, 8);
-    // ssd1306_draw_bitmap(ssd, 0, 2, bitmap_turtle, 32, 32);
-    // ssd1306_draw_bitmap(ssd, 33, 2, bitmap_cat, 32, 32);
-    // ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
-    // ssd1306_draw_bitmap(ssd, 97, 2, bitmap_hotdog, 32, 32);
-    // ssd1306_set_page_col(ssd, 10, 7);
-    // ssd1306_write_integer_8x8(ssd, 0);
-    ssd1306_draw_menu(ssd);
+    // ssd1306_draw_menu(ssd);
+    ssd1306_draw_logo(ssd);
     return 0;
 r_device:
     class_destroy(ssd->dev_class);
@@ -344,6 +378,8 @@ static int __init create_function(void)
 static void __exit rmv_function(void)
 {
     i2c_del_driver(&my_ssd1306_ui);
+    for (int i = 0; i < NUMBER_BUTTON; i++)
+        disable_irq(btn[i].irq);
     platform_driver_unregister(&btn_ssd1306_ui);
     pr_info("Exit done\n");
 }

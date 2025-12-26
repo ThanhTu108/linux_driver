@@ -35,10 +35,16 @@ enum ssd1306_cmd
 };
 enum menu_mode {
     MODE_CONTRAST = 0,
-    MODE_INVERSE,
-    MODE_ROTATE,
-    MODE_DISPLAY,
-    MODE_EXIT,
+    MODE_INVERSE = 1,
+    MODE_ROTATE = 2,
+    MODE_DISPLAY = 3,
+    MODE_EXIT = 4,
+};
+enum menu_state
+{
+    LOGO = 0, 
+    SEL_MENU,
+    ADJ_VAL,
 };
 struct ssd1306_t
 {
@@ -48,7 +54,10 @@ struct ssd1306_t
     // struct device* dev_file,
     struct cdev my_cdev;
     struct kobject* my_kobj;
+    enum menu_state state;
     enum menu_mode mode;
+    atomic_t last_btn;
+    struct completion event;
     // struct 
 };
 // extern const char bitmap[];

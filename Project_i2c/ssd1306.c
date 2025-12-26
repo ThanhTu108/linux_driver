@@ -254,6 +254,13 @@ void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode)
         return;
     }
     int prev_mode = mode_to_page(ssd->mode);
+    // if(mode == 0)
+    // {
+    //     ssd->mode = mode;
+    //     ssd1306_set_page_col(ssd, 8, prev_mode);
+    //     ssd1306_write_string_8x8(ssd, "  ");
+    //     return;
+    // }   
     if(prev_mode >= 0)
     {
         ssd1306_set_page_col(ssd, 8, prev_mode);

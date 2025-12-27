@@ -227,6 +227,11 @@ void ssd1306_draw_menu(struct ssd1306_t *ssd)
     ssd1306_set_page_col(ssd, 0, 7);
     ssd1306_write_string_8x8(ssd, "----------------");
 }
+void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast)
+{
+    ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
+    ssd1306_send_cmd(ssd, contrast);
+}
 void ssd1306_draw_logo(struct ssd1306_t *ssd)
 {
     ssd1306_clear(ssd);
@@ -237,7 +242,7 @@ void ssd1306_draw_logo(struct ssd1306_t *ssd)
     ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
     ssd1306_draw_bitmap(ssd, 95, 2, bitmap_hotdog, 32, 32);
     ssd1306_set_page_col(ssd, 10, 7);
-    ssd1306_write_string_8x8(ssd, "Press SEL");
+    ssd1306_write_string_8x8(ssd, "PRESS SEL");
 }
 
 static int mode_to_page(enum menu_mode mode)

@@ -217,6 +217,7 @@ static ssize_t ssd_write(struct file* file, const char __user* buf, size_t len, 
     pr_info("WRITE\n\n");
     return len;
 }
+
 static void button_handler(struct button_t* btn)
 {
     struct ssd1306_t* ssd = btn->ssd1306;
@@ -246,6 +247,10 @@ static void button_handler(struct button_t* btn)
                     ssd1306_draw_logo(ssd);
                     ssd->state = LOGO;
                     break;
+                case(BTN_SEL):
+                    ssd->state = ADJ_VAL;
+                    break;
+                    
             }
             // if(btn->tyo)
             break;

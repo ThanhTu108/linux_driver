@@ -79,4 +79,5 @@ static int mode_to_page(enum menu_mode mode);
 void ssd1306_draw_menu(struct ssd1306_t *ssd);
 void ssd1306_draw_logo(struct ssd1306_t *ssd);
 void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode);
+void ssd1306_set_contrast(struct ssd1306_t *ssd, uint32_t contrast);
 #endif

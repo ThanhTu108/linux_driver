@@ -33,32 +33,36 @@ enum ssd1306_cmd
     SSD1306_NORMAL_DISPLAY = 0xA6,  //Ram = 1 -> pixel on
     SSD1306_INVERSE_DISPLAY = 0xA7, //ram = 0 -> pixel off
 };
-enum menu_mode {
+
+//function pointer (FSM)
+typedef (*button_action_fn)(struct ssd);
+typedef enum menu_mode 
+{
     MODE_CONTRAST = 0,
     MODE_INVERSE = 1,
     MODE_ROTATE = 2,
     MODE_DISPLAY = 3,
     MODE_EXIT = 4,
-};
-enum menu_state
+    MODE_COUNT,
+} e_menu_mode;
+
+typedef enum menu_state
 {
     LOGO = 0, 
-    SEL_MENU,
-    ADJ_VAL,
+    SEL_MENU = 1,
+    ADJ_VAL = 2,
+    STATE_COUNT,
+} e_menu_state;
+
+struct ssd_ui
+{
+    e_menu_mode mode;
+    e_menu_state state;
 };
 struct ssd1306_t
 {
     struct i2c_client* client;
-    dev_t dev_num;
-    struct class* dev_class;
-    // struct device* dev_file,
-    struct cdev my_cdev;
-    struct kobject* my_kobj;
-    enum menu_state state;
-    enum menu_mode mode;
-    atomic_t last_btn;
-    struct completion event;
-    // struct 
+    struct ssd_ui ui;
 };
 // extern const char bitmap[];
 // //function write

@@ -76,22 +76,6 @@ static struct platform_driver btn_ssd1306_ui =
     },
 };
 
-enum btn_type
-{
-    BTN_UP,
-    BTN_DW,
-    BTN_SEL,
-    BTN_BACK,
-};
-struct button_t 
-{
-    struct gpio_desc* btn_ssd;
-    enum btn_type type;
-    int irq;
-    // enum menu_mode mode;
-    struct ssd1306_t* ssd1306;
-};
-struct button_t btn[NUMBER_BUTTON];
 
 static struct task_struct* thread_ssd1306_ui;
 int thread_ssd1306_ui_fn(void* data);
@@ -112,7 +96,7 @@ struct file_operations my_fops =
 static irqreturn_t btn_irq(int irq, void* dev_id)
 {
     struct button_t* btn = dev_id;
-    struct ssd1306_t* ssd = btn->ssd1306;
+    struct ssd1306_t* ssd = btn->data;
     if (unlikely(!btn || !ssd))
     {
         pr_info("Cannot get irq\n");
@@ -220,7 +204,7 @@ static ssize_t ssd_write(struct file* file, const char __user* buf, size_t len, 
 
 static void button_handler(struct button_t* btn)
 {
-    struct ssd1306_t* ssd = btn->ssd1306;
+    struct ssd1306_t* ssd = btn->data;
     pr_info("Check function\n");
     pr_info("State: %d\n", ssd->state);
     switch(ssd->state)
@@ -323,7 +307,7 @@ static int ssd1306_ui_probe(struct i2c_client* client, const struct i2c_device_i
     ssd->state = LOGO;
     for(int i = 0; i< NUMBER_BUTTON; i++)
     {
-        btn[i].ssd1306 = ssd;
+        btn[i].data = ssd;
     }
     init_completion(&ssd->event);
     atomic_set(&ssd->last_btn, LOGO);

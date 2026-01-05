@@ -4,7 +4,7 @@
 #define NUMBER_BUTTON 4
 enum btn_type
 {
-    BTN_UP,
+    BTN_UP = 0,
     BTN_DW,
     BTN_SEL,
     BTN_BACK,

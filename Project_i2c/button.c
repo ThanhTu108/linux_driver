@@ -16,7 +16,7 @@ void button_send_type(enum btn_type type)
 {
     if(g_btn_ops && g_btn_ops->is_press)
     {
-        g_btn_ops->is_press(type, g_btn_ops->data)
+        g_btn_ops->is_press(type, g_btn_ops->data);
     }
 }
 EXPORT_SYMBOL_GPL(button_send_type);

@@ -1,14 +1,15 @@
 #include <linux/module.h>
-#include "linux/button.h"
 #include <linux/platform_device.h>
 #include <linux/gpio/consumer.h>
 #include <linux/property.h>
 #include <linux/device.h>
 #include <linux/mod_devicetable.h>
 #include <linux/of.h>
-#include <linux/interrupts.h>
+#include <linux/interrupt.h>
+#include "button.h"
 int button_probe(struct platform_device *pdev);
 int button_remove(struct platform_device *pdev);
+static irqreturn_t button_handler(int irq, void* data);
 static struct of_device_id button_id[] = 
 {
     {
@@ -17,7 +18,7 @@ static struct of_device_id button_id[] =
     {},
 };
 
-MODULE_DEVICE_TABLE(button_id);
+MODULE_DEVICE_TABLE(of, button_id);
 
 static struct platform_driver button_ssd = 
 {
@@ -29,18 +30,26 @@ static struct platform_driver button_ssd =
         .name = "button_driver",
     },
 };
+module_platform_driver(button_ssd);
 struct button_t 
 {
-    gpio_desc *btn[NUMBER_BUTTON];
+    struct gpio_desc *btn[NUMBER_BUTTON];
     int irq[NUMBER_BUTTON];
 };
+static irqreturn_t button_handler(int irq, void* data)
+{
+    int type = (int)(long)data;
+    pr_info("type: %d\n", type);
+    button_send_type(type);
+    return IRQ_HANDLED;
+}
 int button_probe(struct platform_device *pdev)
 {
     struct device* dev = &pdev->dev;
-    char* label;
+    const char* label;
     uint32_t debounce; 
-    struct button_t* data;
-    btn = devm_kzalloc(dev, sizeof(button_t), GFP_KERNEL);
+    struct button_t* data = NULL;
+    data = kzalloc(sizeof(struct button_t), GFP_KERNEL);
     if(device_property_read_string(dev, "label", &label))
     {
         dev_err(dev, "Cannot read string\n");
@@ -63,6 +72,28 @@ int button_probe(struct platform_device *pdev)
         }
         gpiod_set_debounce(data->btn[i], debounce);
         data->irq[i] = gpiod_to_irq(data->btn[i]);
-        if(devm_request_irq())
+        if(request_irq(data->irq[i], button_handler, IRQF_TRIGGER_FALLING, "button_ssd1306", (void*)(long)i))
+        {
+            dev_err(dev, "Cannot request irq\n");
+            return -1;
+        }
     }
+    //Luu lai struct button_t* data
+    platform_set_drvdata(pdev, data);
+    return 0;
 }
+int button_remove(struct platform_device *pdev)
+{
+    dev_info(&pdev->dev, "Remove button\n");
+    struct button_t* data = platform_get_drvdata(pdev);
+    for(int i = 0; i <NUMBER_BUTTON; i++)
+    {
+        // disable_irq(data->irq[i]);
+        free_irq(data->irq[i], (void*)(long)i);
+    }
+    kfree(data);
+    return 0;
+}
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("thanhtu10803@gmail.com");

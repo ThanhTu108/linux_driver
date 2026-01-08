@@ -3,9 +3,11 @@
 
 #include <linux/types.h>
 #include <linux/cdev.h>
+#include <linux/kthread.h>
 //define cmd ssd1306
 #define SINGLE_CMD 0x00    //dc = 0, co = 0
 #define SINGLE_DATA 0x40   //dc = 1, co = 1
+#define NUMBER_BUTTON 4
 enum ssd1306_cmd 
 {
     SSD1306_DISPLAY_ON = 0xAF,  //normal mode
@@ -34,15 +36,56 @@ enum ssd1306_cmd
     SSD1306_INVERSE_DISPLAY = 0xA7, //ram = 0 -> pixel off
 };
 
+//function pointer (FSM)
+// typedef (*button_action_fn)(struct ssd);
+typedef enum menu_mode 
+{
+    MODE_CONTRAST = 0,
+    MODE_INVERSE = 1,
+    MODE_ROTATE = 2,
+    MODE_DISPLAY = 3,
+    MODE_EXIT = 4,
+    MODE_COUNT,
+} e_menu_mode;
+
+typedef enum menu_state
+{
+    LOGO = 0, 
+    SEL_MENU = 1,
+    ADJ_VAL = 2,
+    STATE_COUNT,
+} e_menu_state;
+struct ssd1306_t;
+typedef void(*on_enter)(struct ssd1306_t* ssd);
+typedef void(*on_exit)(struct ssd1306_t* ssd);
+typedef void(*button_action)(struct ssd1306_t* ssd);
+struct fsm_state
+{
+    e_menu_state state;
+    const char* name;
+    on_enter enter;
+    on_exit exit;
+    button_action sel;
+    button_action up;
+    button_action dw;
+    button_action back;
+};
 struct ssd1306_t
 {
+    struct device* dev;
     struct i2c_client* client;
-    dev_t dev_num;
-    struct class* dev_class;
-    // struct device* dev_file,
-    struct cdev my_cdev;
-    struct kobject* my_kobj;
-    // struct 
+    atomic_t last_btn;
+    struct completion event;
+    struct task_struct* thread_ui;
+    struct fsm_state* cur_state;
+    struct fsm_state* all_state[NUMBER_BUTTON];
+    e_menu_mode mode;
+    e_menu_state state;
+};
+struct button_ops_ssd 
+{
+    void (*is_press)(int, void*);
+    void *data;
 };
 // extern const char bitmap[];
 // //function write
@@ -58,5 +101,20 @@ void ssd1306_write_string(struct ssd1306_t* ssd, char* str);
 void ssd1306_write_string_8x8(struct ssd1306_t* ssd, char* str);
 void ssd1306_write_space(struct ssd1306_t* ssd);
 void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const char* bitmap, uint8_t h, uint8_t w);
-void ssd1306_draw_menu(struct ssd1306_t* ssd);
+// static int mode_to_page(enum menu_mode mode);
+// void ssd1306_draw_menu(struct ssd1306_t *ssd, enum menu_mode mode);
+void ssd1306_draw_menu(struct ssd1306_t *ssd);
+void ssd1306_draw_logo(struct ssd1306_t *ssd);
+void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode);
+void ssd1306_set_contrast(struct ssd1306_t *ssd, uint32_t contrast);
+
+
+void button_ssd_handler(int type, void* data);
+
+
+//fsm function logo
+void logo_on_enter(struct ssd1306_t* ssd);
+void do_noop(struct ssd1306_t* ssd);
+struct fsm_state* fsm_get_state_logo(void);
+
 #endif

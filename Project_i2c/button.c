@@ -12,11 +12,20 @@ void button_set_callback(struct button_operation* btn_ops)
 }
 EXPORT_SYMBOL_GPL(button_set_callback);
 
+void button_unregister_callback(struct button_operation* btn_ops)
+{
+    if (g_btn_ops == btn_ops) {
+        g_btn_ops = NULL;
+    }
+}
+EXPORT_SYMBOL_GPL(button_unregister_callback);
+
 void button_send_type(enum btn_type type)
 {
-    if(g_btn_ops && g_btn_ops->is_press)
+    struct button_operation* ops = g_btn_ops;
+    if(ops && ops->is_press)
     {
-        g_btn_ops->is_press(type, g_btn_ops->data);
+        ops->is_press(type, ops->data);
     }
 }
 EXPORT_SYMBOL_GPL(button_send_type);

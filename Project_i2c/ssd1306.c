@@ -227,11 +227,11 @@ void ssd1306_draw_menu(struct ssd1306_t *ssd)
     ssd1306_set_page_col(ssd, 0, 7);
     ssd1306_write_string_8x8(ssd, "----------------");
 }
-void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast)
-{
-    ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
-    ssd1306_send_cmd(ssd, contrast);
-}
+// void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast)
+// {
+//     ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
+//     ssd1306_send_cmd(ssd, contrast);
+// }
 void ssd1306_draw_logo(struct ssd1306_t *ssd)
 {
     ssd1306_clear(ssd);
@@ -245,46 +245,90 @@ void ssd1306_draw_logo(struct ssd1306_t *ssd)
     ssd1306_write_string_8x8(ssd, "PRESS SEL");
 }
 
-static int mode_to_page(enum menu_mode mode)
+// static int mode_to_page(enum menu_mode mode)
+// {
+//     switch(mode)
+//     {
+//         case MODE_CONTRAST:
+//             return 2;
+//         case MODE_INVERSE:
+//             return 3;
+//         case MODE_ROTATE:
+//             return 4;
+//         case MODE_DISPLAY:
+//             return 5;
+//         case MODE_EXIT:
+//             return 6;
+//         default:
+//             return -1;
+//     }
+// }
+
+// void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode)
+// {
+//     if(mode == ssd->mode)
+//     {
+//         return;
+//     }
+//     int prev_mode = mode_to_page(ssd->mode);
+//     // if(mode == 0)
+//     // {
+//     //     ssd->mode = mode;
+//     //     ssd1306_set_page_col(ssd, 8, prev_mode);
+//     //     ssd1306_write_string_8x8(ssd, "  ");
+//     //     return;
+//     // }   
+//     if(prev_mode >= 0)
+//     {
+//         ssd1306_set_page_col(ssd, 8, prev_mode);
+//         ssd1306_write_string_8x8(ssd, "  ");
+//     }
+//     int new_mode = mode_to_page(mode);
+//     ssd1306_set_page_col(ssd, 8, new_mode);
+//     ssd1306_write_string_8x8(ssd, "->");
+//     ssd->mode = mode;
+// }
+
+const char* name[] = {"up", "down", "back", "sel"};
+// typedef void (*button_callback_t)(enum btn_type type, void* data);
+void button_ssd_handler(int type, void* data)
 {
-    switch(mode)
+    struct ssd1306_t* ssd = (struct ssd1306_t*)data;
+    if(ssd)
     {
-        case MODE_CONTRAST:
-            return 2;
-        case MODE_INVERSE:
-            return 3;
-        case MODE_ROTATE:
-            return 4;
-        case MODE_DISPLAY:
-            return 5;
-        case MODE_EXIT:
-            return 6;
-        default:
-            return -1;
+        pr_info("SSD_handler: %s", name[type]);
+        atomic_set(&ssd->last_btn, type);
+        complete(&ssd->event);
+    }
+    else
+    {
+        pr_info("ERRR\n");
     }
 }
-
-void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode)
+void logo_on_enter(struct ssd1306_t* ssd)
 {
-    if(mode == ssd->mode)
-    {
-        return;
-    }
-    int prev_mode = mode_to_page(ssd->mode);
-    // if(mode == 0)
-    // {
-    //     ssd->mode = mode;
-    //     ssd1306_set_page_col(ssd, 8, prev_mode);
-    //     ssd1306_write_string_8x8(ssd, "  ");
-    //     return;
-    // }   
-    if(prev_mode >= 0)
-    {
-        ssd1306_set_page_col(ssd, 8, prev_mode);
-        ssd1306_write_string_8x8(ssd, "  ");
-    }
-    int new_mode = mode_to_page(mode);
-    ssd1306_set_page_col(ssd, 8, new_mode);
-    ssd1306_write_string_8x8(ssd, "->");
-    ssd->mode = mode;
+    ssd1306_draw_menu(ssd);
+}
+
+void do_noop(struct ssd1306_t* ssd)
+{
+
+}
+
+static struct fsm_state state_logo = 
+{
+    .state = LOGO,
+    .name = "LOGO",
+    .enter = logo_on_enter,
+    .exit = do_noop,
+    
+    .back = do_noop,
+    .sel = do_noop,
+    .up = do_noop,
+    .dw = do_noop
+};
+
+struct fsm_state* fsm_get_state_logo(void)
+{
+    return &state_logo;
 }

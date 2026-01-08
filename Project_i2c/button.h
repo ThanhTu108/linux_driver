@@ -26,5 +26,5 @@ struct button_operation
 
 void button_set_callback(struct button_operation* btn_ops);
 void button_send_type(enum btn_type type);
-
+void button_unregister_callback(struct button_operation* btn_ops);
 #endif

@@ -1,7 +1,9 @@
 .PHONY: all clean
 
-obj-m :=ssd1306_button.o
+obj-m +=ssd1306_button.o
+obj-m +=ssd1306_ui.o
 ssd1306_button-objs :=driver_button.o button.o
+ssd1306_ui-objs :=driver_ssd.o ssd1306.o font5x7.o
 ARCH = arm
 KDIR:=/home/tu/BBG/tmp/lib/modules/6.1.83/build
 CROSS_COMPILE = arm-linux-gnueabi-

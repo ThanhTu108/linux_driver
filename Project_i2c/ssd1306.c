@@ -245,7 +245,7 @@ void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse)
 }
 void ssd1306_set_rotate(struct ssd1306_t* ssd, uint16_t rotate)
 {
-    ssd1306_cmd(ssd, )
+    // ssd1306_cmd(ssd, )
 }
 void ssd1306_draw_logo(struct ssd1306_t *ssd)
 {
@@ -302,6 +302,68 @@ void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode)
     ssd1306_set_page_col(ssd, 8, new_mode);
     ssd1306_write_string_8x8(ssd, "->");
     ssd->mode = mode;
+}
+//start: 10, end: 110
+void ssd1306_draw_menu_contrast(struct ssd1306_t* ssd)
+{
+    ssd1306_clear(ssd);
+    ssd1306_set_page_col(ssd, 32, 0);
+    ssd1306_write_string_8x8(ssd, "CONTRAST");
+
+    int fill = (ssd->val_contrast * (END_COL_CONTRAST - START_COL_CONTRAST)) / 230;
+    ssd1306_set_page_col(ssd, START_COL_CONTRAST - 1, TOP_PAGE);
+    ssd1306_send_data(ssd, 0xFF);
+    ssd1306_set_page_col(ssd, START_COL_CONTRAST - 1, BOT_PAGE);
+    ssd1306_send_data(ssd, 0xFF);
+    for(int i = 0; i < 100; i++)
+    {
+        if(i < fill)
+        {
+            ssd1306_set_page_col(ssd, START_COL_CONTRAST+i, TOP_PAGE);
+            ssd1306_send_data(ssd, 0xff);
+            ssd1306_set_page_col(ssd, START_COL_CONTRAST+i, BOT_PAGE);
+            ssd1306_send_data(ssd, 0xff);
+        }
+        else 
+        {
+            ssd1306_set_page_col(ssd, START_COL_CONTRAST+i, TOP_PAGE);
+            ssd1306_send_data(ssd, 0x01);
+            ssd1306_set_page_col(ssd, START_COL_CONTRAST+i, BOT_PAGE);
+            ssd1306_send_data(ssd, 0x80);
+        }
+    } 
+    ssd1306_set_page_col(ssd, END_COL_CONTRAST, TOP_PAGE);
+    ssd1306_send_data(ssd, 0xFF);
+    ssd1306_set_page_col(ssd, END_COL_CONTRAST, BOT_PAGE);
+    ssd1306_send_data(ssd, 0xFF);
+}
+void ssd1306_draw_contrast(struct ssd1306_t* ssd)
+{
+    int fill = (ssd->val_contrast * (END_COL_CONTRAST - START_COL_CONTRAST)) / 230;
+    ssd1306_set_page_col(ssd, START_COL_CONTRAST, TOP_PAGE);
+    for(int i = 0; i < 100; i++)
+    {
+        if(i < fill)
+        { 
+            ssd1306_send_data(ssd, 0xFF);
+        }
+        else 
+        {
+            ssd1306_send_data(ssd, 0x01);
+        }
+    } 
+    ssd1306_set_page_col(ssd, START_COL_CONTRAST, BOT_PAGE);
+    for(int i = 0; i < 100; i++)
+    {
+        if(i < fill)
+        { 
+            ssd1306_send_data(ssd, 0xFF);
+        }
+        else 
+        {
+            ssd1306_send_data(ssd, 0x80);
+        }
+    } 
 }
 
 const char* name[] = {"up", "down", "back", "sel"};
@@ -445,6 +507,12 @@ void menu_sel(struct ssd1306_t* ssd)
 
 void adj_on_enter(struct ssd1306_t* ssd)
 {
+    switch(ssd->mode)
+    {
+        case MODE_CONTRAST:
+            ssd1306_draw_menu_contrast(ssd);
+            break;
+    }
 }
 void adj_exit(struct ssd1306_t* ssd)
 {
@@ -464,6 +532,7 @@ void adj_up(struct ssd1306_t* ssd)
             }
             pr_info("Contrast: %d\n", (ssd->val_contrast));
             ssd1306_set_contrast(ssd, ssd->val_contrast);
+            ssd1306_draw_contrast(ssd);
             break;
         case MODE_INVERSE:
             ssd->inverse = !ssd->inverse;
@@ -489,13 +558,14 @@ void adj_dw(struct ssd1306_t* ssd)
             }
             pr_info("Contrast: %d\n", (ssd->val_contrast));
             ssd1306_set_contrast(ssd, ssd->val_contrast);
+            ssd1306_draw_contrast(ssd);
             break;
         case MODE_INVERSE:
             ssd->inverse = !ssd->inverse;
             ssd1306_inverse(ssd, ssd->inverse);
             break;
         case MODE_ROTATE:
-            s
+            break;
     }
 }
 void adj_sel(struct ssd1306_t* ssd)

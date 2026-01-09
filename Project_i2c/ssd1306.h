@@ -8,7 +8,10 @@
 #define SINGLE_CMD 0x00    //dc = 0, co = 0
 #define SINGLE_DATA 0x40   //dc = 1, co = 1
 #define NUMBER_BUTTON 4
-
+#define START_COL_CONTRAST 10
+#define END_COL_CONTRAST 110
+#define TOP_PAGE 3
+#define BOT_PAGE 4
 enum ssd1306_cmd 
 {
     SSD1306_DISPLAY_ON = 0xAF,  //normal mode
@@ -82,7 +85,7 @@ struct ssd1306_t
     e_menu_mode mode;
     uint8_t val_contrast;
     bool inverse;
-    uint16_t rotate
+    uint16_t rotate;
     // e_menu_state state;
 };
 struct button_ops_ssd 
@@ -110,7 +113,8 @@ void ssd1306_draw_menu(struct ssd1306_t *ssd);
 void ssd1306_draw_logo(struct ssd1306_t *ssd);
 void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode);
 void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast);
-void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast);
+void ssd1306_draw_menu_contrast(struct ssd1306_t* ssd);
+void ssd1306_draw_contrast(struct ssd1306_t* ssd);
 void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse);
 void ssd1306_set_rotate(struct ssd1306_t* ssd, uint16_t rotate);
 

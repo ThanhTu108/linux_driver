@@ -8,6 +8,7 @@
 #define SINGLE_CMD 0x00    //dc = 0, co = 0
 #define SINGLE_DATA 0x40   //dc = 1, co = 1
 #define NUMBER_BUTTON 4
+
 enum ssd1306_cmd 
 {
     SSD1306_DISPLAY_ON = 0xAF,  //normal mode
@@ -78,9 +79,11 @@ struct ssd1306_t
     struct completion event;
     struct task_struct* thread_ui;
     struct fsm_state* cur_state;
-    struct fsm_state* all_state[NUMBER_BUTTON];
     e_menu_mode mode;
-    e_menu_state state;
+    uint8_t val_contrast;
+    bool inverse;
+    uint16_t rotate
+    // e_menu_state state;
 };
 struct button_ops_ssd 
 {
@@ -106,8 +109,10 @@ void ssd1306_draw_bitmap(struct ssd1306_t* ssd, uint8_t col, uint8_t page, const
 void ssd1306_draw_menu(struct ssd1306_t *ssd);
 void ssd1306_draw_logo(struct ssd1306_t *ssd);
 void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode);
-void ssd1306_set_contrast(struct ssd1306_t *ssd, uint32_t contrast);
-
+void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast);
+void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast);
+void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse);
+void ssd1306_set_rotate(struct ssd1306_t* ssd, uint16_t rotate);
 
 void button_ssd_handler(int type, void* data);
 
@@ -115,6 +120,24 @@ void button_ssd_handler(int type, void* data);
 //fsm function logo
 void logo_on_enter(struct ssd1306_t* ssd);
 void do_noop(struct ssd1306_t* ssd);
-struct fsm_state* fsm_get_state_logo(void);
+void logo_sel(struct ssd1306_t* ssd);
+void logo_exit(struct ssd1306_t* ssd);
+// Menu
+void menu_on_enter(struct ssd1306_t* ssd);
+void menu_back(struct ssd1306_t* ssd);
+void menu_up(struct ssd1306_t* ssd);
+void menu_dw(struct ssd1306_t* ssd);
+void menu_exit(struct ssd1306_t* ssd);
+void menu_sel(struct ssd1306_t* ssd);
+
+// ADJ
+void adj_on_enter(struct ssd1306_t* ssd);
+void adj_exit(struct ssd1306_t* ssd);
+void adj_back(struct ssd1306_t* ssd);
+void adj_up(struct ssd1306_t* ssd);
+void adj_dw(struct ssd1306_t* ssd);
+void adj_sel(struct ssd1306_t* ssd);
+struct fsm_state* fsm_get_struct_fsm(e_menu_state e_state);
+void fsm_set_state(struct ssd1306_t* ssd, e_menu_state new_state);
 
 #endif

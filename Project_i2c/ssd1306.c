@@ -133,7 +133,6 @@ void ssd1306_write_integer_8x8(struct ssd1306_t* ssd, int num)
     id = char_to_idx8x8(id);
     for(int i = 0; i<8; i++)
     {
-        pr_info("Index = %d",(id + i));
         ssd1306_send_data(ssd, Font8x8[i + id]);
     }
 }
@@ -147,13 +146,11 @@ void ssd1306_write_string(struct ssd1306_t* ssd, char* str)
         pr_err("Cannot alocate memory\n");
     }
     strcpy(new_str, str);
-    pr_info("%s\n", new_str);
     for(int i = 0; new_str[i] != '\0'; i++)
     {
         for(int j = 0; j < 5; j++)
         {
             int id = char_to_idx(new_str[i]);
-            pr_info("id_write string: %d\n", id);
             ssd1306_send_data(ssd, Font5x7[j + id]);
         }
     }
@@ -169,7 +166,6 @@ void ssd1306_write_string_8x8(struct ssd1306_t* ssd, char* str)
         return;
     }
     strcpy(new_str, str);
-    pr_info("%s\n", new_str);
     for(int i = 0; new_str[i] != '\0'; i++)
     {
         int idx = char_to_idx8x8(str[i]);
@@ -237,10 +233,12 @@ void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse)
     if(is_inverse)
     {
         ssd1306_send_cmd(ssd, SSD1306_SCAN_DIRECTION_NORMAL);
+        ssd1306_send_cmd(ssd, SSD1306_REMAP_NORMAL);
     }
     else
     {
         ssd1306_send_cmd(ssd, SSD1306_SCAN_DIRECTION_REVERSE);
+        ssd1306_send_cmd(ssd, SSD1306_REMAP_REVERSE);
     }
 }
 void ssd1306_set_rotate(struct ssd1306_t* ssd, uint16_t rotate)
@@ -474,11 +472,15 @@ void fsm_set_state(struct ssd1306_t* ssd, e_menu_state new_state)
 }
 void logo_sel(struct ssd1306_t* ssd)
 {
+    if(ssd->display == 0)
+    {
+        ssd1306_send_cmd(ssd, SSD1306_DISPLAY_ON);
+    }
     fsm_set_state(ssd, SEL_MENU);
 }
 void logo_exit(struct ssd1306_t* ssd)
 {
-    ssd->mode = -1;
+    ssd->mode = MODE_NONE;
 }
 void menu_on_enter(struct ssd1306_t* ssd)
 {
@@ -499,10 +501,29 @@ void menu_dw(struct ssd1306_t* ssd)
 }
 void menu_exit(struct ssd1306_t* ssd)
 {
+    ssd->mode = ssd->mode;
 }
 void menu_sel(struct ssd1306_t* ssd)
 {
-    fsm_set_state(ssd, ADJ_VAL);
+    pr_info("Mode in menu first: %d\n", ssd->mode);
+    if(ssd->mode == MODE_NONE)
+    {
+        return;
+    }
+    switch(ssd->mode)
+    {
+        case MODE_DISPLAY:
+            ssd->display = 0;
+            fsm_set_state(ssd, LOGO);
+            ssd1306_send_cmd(ssd, SSD1306_DISPLAY_OFF);
+            return;
+        case MODE_EXIT: 
+            fsm_set_state(ssd, LOGO);
+            return;
+        default:
+            fsm_set_state(ssd, ADJ_VAL);
+            break;
+    }
 }
 
 void adj_on_enter(struct ssd1306_t* ssd)
@@ -511,6 +532,8 @@ void adj_on_enter(struct ssd1306_t* ssd)
     {
         case MODE_CONTRAST:
             ssd1306_draw_menu_contrast(ssd);
+            break;
+        default:
             break;
     }
 }
@@ -537,6 +560,8 @@ void adj_up(struct ssd1306_t* ssd)
         case MODE_INVERSE:
             ssd->inverse = !ssd->inverse;
             ssd1306_inverse(ssd, ssd->inverse);
+            break;
+        default:
             break;
     }
 }
@@ -566,9 +591,11 @@ void adj_dw(struct ssd1306_t* ssd)
             break;
         case MODE_ROTATE:
             break;
+        default:
+            break;
     }
 }
 void adj_sel(struct ssd1306_t* ssd)
 {
-
+    
 }

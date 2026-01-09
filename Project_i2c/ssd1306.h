@@ -44,6 +44,7 @@ enum ssd1306_cmd
 // typedef (*button_action_fn)(struct ssd);
 typedef enum menu_mode 
 {
+    MODE_NONE = -1,
     MODE_CONTRAST = 0,
     MODE_INVERSE = 1,
     MODE_ROTATE = 2,
@@ -86,6 +87,7 @@ struct ssd1306_t
     uint8_t val_contrast;
     bool inverse;
     uint16_t rotate;
+    bool display;
     // e_menu_state state;
 };
 struct button_ops_ssd 

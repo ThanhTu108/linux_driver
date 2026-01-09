@@ -228,9 +228,20 @@ void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast)
     ssd1306_send_cmd(ssd, SSD1306_SET_CONTRAST);
     ssd1306_send_cmd(ssd, contrast);
 }
-void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse)
+void ssd1306_inverse(struct ssd1306_t* ssd)
 {
-    if(is_inverse)
+    if(ssd->inverse)
+    {
+        ssd1306_send_cmd(ssd, SSD1306_NORMAL_DISPLAY);
+    }
+    else
+    {
+        ssd1306_send_cmd(ssd, SSD1306_INVERSE_DISPLAY);
+    }
+}
+void ssd1306_set_rotate(struct ssd1306_t* ssd)
+{
+    if(ssd->rotate)
     {
         ssd1306_send_cmd(ssd, SSD1306_SCAN_DIRECTION_NORMAL);
         ssd1306_send_cmd(ssd, SSD1306_REMAP_NORMAL);
@@ -240,10 +251,6 @@ void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse)
         ssd1306_send_cmd(ssd, SSD1306_SCAN_DIRECTION_REVERSE);
         ssd1306_send_cmd(ssd, SSD1306_REMAP_REVERSE);
     }
-}
-void ssd1306_set_rotate(struct ssd1306_t* ssd, uint16_t rotate)
-{
-    // ssd1306_cmd(ssd, )
 }
 void ssd1306_draw_logo(struct ssd1306_t *ssd)
 {
@@ -559,8 +566,11 @@ void adj_up(struct ssd1306_t* ssd)
             break;
         case MODE_INVERSE:
             ssd->inverse = !ssd->inverse;
-            ssd1306_inverse(ssd, ssd->inverse);
+            ssd1306_inverse(ssd);
             break;
+        case MODE_ROTATE:
+            ssd->rotate =!ssd->rotate;
+            ssd1306_set_rotate(ssd);
         default:
             break;
     }
@@ -587,10 +597,11 @@ void adj_dw(struct ssd1306_t* ssd)
             break;
         case MODE_INVERSE:
             ssd->inverse = !ssd->inverse;
-            ssd1306_inverse(ssd, ssd->inverse);
+            ssd1306_inverse(ssd);
             break;
         case MODE_ROTATE:
-            break;
+            ssd->rotate =!ssd->rotate;
+            ssd1306_set_rotate(ssd);
         default:
             break;
     }

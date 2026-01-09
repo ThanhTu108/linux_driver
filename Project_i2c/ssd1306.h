@@ -86,8 +86,8 @@ struct ssd1306_t
     e_menu_mode mode;
     uint8_t val_contrast;
     bool inverse;
-    uint16_t rotate;
     bool display;
+    bool rotate;
     // e_menu_state state;
 };
 struct button_ops_ssd 
@@ -117,8 +117,8 @@ void ssd1306_draw_mode(struct ssd1306_t *ssd, enum menu_mode mode);
 void ssd1306_set_contrast(struct ssd1306_t *ssd, uint8_t contrast);
 void ssd1306_draw_menu_contrast(struct ssd1306_t* ssd);
 void ssd1306_draw_contrast(struct ssd1306_t* ssd);
-void ssd1306_inverse(struct ssd1306_t* ssd, bool is_inverse);
-void ssd1306_set_rotate(struct ssd1306_t* ssd, uint16_t rotate);
+void ssd1306_inverse(struct ssd1306_t* ssd);
+void ssd1306_set_rotate(struct ssd1306_t* ssd);
 
 void button_ssd_handler(int type, void* data);
 

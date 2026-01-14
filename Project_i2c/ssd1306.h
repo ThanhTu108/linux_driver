@@ -4,6 +4,7 @@
 #include <linux/types.h>
 #include <linux/cdev.h>
 #include <linux/kthread.h>
+#include <linux/mutex.h>
 //define cmd ssd1306
 #define SINGLE_CMD 0x00    //dc = 0, co = 0
 #define SINGLE_DATA 0x40   //dc = 1, co = 1
@@ -82,6 +83,7 @@ struct ssd1306_t
     atomic_t last_btn;
     struct completion event;
     struct task_struct* thread_ui;
+    struct mutex i2c_lock;
     struct fsm_state* cur_state;
     e_menu_mode mode;
     uint8_t val_contrast;

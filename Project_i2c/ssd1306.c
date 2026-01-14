@@ -6,7 +6,9 @@
 #include "font5x7.h"
 static int i2c_write(struct ssd1306_t* ssd ,unsigned char* buf, unsigned int len)
 {
+    mutex_lock(&ssd->i2c_lock);
     int ret = i2c_master_send(ssd->client, buf, len);
+    mutex_unlock(&ssd->i2c_lock);
     return ret;
 }
 void ssd1306_send_cmd(struct ssd1306_t* ssd, enum ssd1306_cmd cmd)
@@ -67,14 +69,7 @@ void ssd1306_init(struct ssd1306_t* ssd)
     //when use charge pump, must use pre charge
     ssd1306_send_cmd(ssd, SSD1306_SET_PRE_CHARGE);
     ssd1306_send_cmd(ssd, 0xF1);
-    int page, col;
-    for(page = 0; page <=7; page++)
-    {
-        for(col = 0; col <=127; col++)
-        {
-            ssd1306_send_data(ssd, 0x00);
-        }
-    }
+    ssd1306_clear(ssd);
     ssd1306_send_cmd(ssd, SSD1306_DISPLAY_ON);
 }
 
@@ -262,7 +257,7 @@ void ssd1306_draw_logo(struct ssd1306_t *ssd)
     ssd1306_draw_bitmap(ssd, 66, 2, bitmap_cow, 32, 32);
     ssd1306_draw_bitmap(ssd, 95, 2, bitmap_hotdog, 32, 32);
     ssd1306_set_page_col(ssd, 10, 7);
-    ssd1306_write_string_8x8(ssd, "PRESS SEL");
+    ssd1306_write_string_8x8(ssd, "Thanh Tu");
 }
 
 static int mode_to_page(enum menu_mode mode)

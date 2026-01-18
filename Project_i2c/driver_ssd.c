@@ -51,9 +51,21 @@ int thread_ui(void* data)
     {
         wait_for_completion(&ssd->event);
         int type = atomic_read(&ssd->last_btn);
-        if(type <= 4)
-            pr_info("Type in kthread: %d\n", type);
-        // reinit_completion(&ssd->event);
+        switch(type)
+        {
+            case 0:
+                ssd->cur_state->up(ssd);
+                break;
+            case 1:
+                ssd->cur_state->dw(ssd);
+                break;
+            case 2:
+                ssd->cur_state->back(ssd);
+                break;
+            case 3:
+                ssd->cur_state->sel(ssd);
+                break;
+        }
         if( type == 10) return 0;
     }
     return 0;
@@ -81,10 +93,14 @@ int ssd1306_probe(struct i2c_client *client, const struct i2c_device_id *id)
     }
     button_set_callback(&ops);
     ssd1306_init(ssd);
-    ssd1306_draw_logo(ssd);
-    ssd->cur_state = fsm_get_state_logo();
-    msleep(1000);
+    // ssd1306_draw_logo(ssd);
+    // msleep(1000);
+    ssd->cur_state = fsm_get_struct_fsm(LOGO);
     ssd->cur_state->enter(ssd);
+    ssd->val_contrast = 100;
+    ssd->inverse = 0;
+    // msleep(1000);
+    // fsm_set_state(ssd, SEL_MENU);
     i2c_set_clientdata(client, ssd);
     return 0;
 }

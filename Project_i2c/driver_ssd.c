@@ -99,6 +99,7 @@ int ssd1306_probe(struct i2c_client *client, const struct i2c_device_id *id)
     ssd->cur_state->enter(ssd);
     ssd->val_contrast = 100;
     ssd->inverse = 0;
+    
     // msleep(1000);
     // fsm_set_state(ssd, SEL_MENU);
     i2c_set_clientdata(client, ssd);

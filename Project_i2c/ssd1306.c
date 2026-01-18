@@ -134,34 +134,33 @@ void ssd1306_write_integer_8x8(struct ssd1306_t* ssd, int num)
 
 void ssd1306_write_string(struct ssd1306_t* ssd, char* str)
 {   
-    char* new_str;
-    new_str = kzalloc(strlen(str), GFP_KERNEL); 
-    if(new_str == NULL)
+    // char* new_str;
+    // new_str = kzalloc(strlen(str), GFP_KERNEL); 
+    // if(new_str == NULL)
+    // {
+    //     pr_err("Cannot alocate memory\n");
+    // }
+    // strcpy(new_str, str);
+    if(!str)
     {
-        pr_err("Cannot alocate memory\n");
+        return;
     }
-    strcpy(new_str, str);
-    for(int i = 0; new_str[i] != '\0'; i++)
+    for(int i = 0; str[i] != '\0'; i++)
     {
+        int id = char_to_idx(str[i]);
         for(int j = 0; j < 5; j++)
-        {
-            int id = char_to_idx(new_str[i]);
+        {   
             ssd1306_send_data(ssd, Font5x7[j + id]);
         }
     }
-    kfree(new_str);
 }
 void ssd1306_write_string_8x8(struct ssd1306_t* ssd, char* str)
 {
-    char* new_str; 
-    new_str = kzalloc(strlen(str), GFP_KERNEL);
-    if(new_str == NULL)
+    if(!str)
     {
-        pr_err("Cannot allocate memory\n");
         return;
     }
-    strcpy(new_str, str);
-    for(int i = 0; new_str[i] != '\0'; i++)
+    for(int i = 0; str[i] != '\0'; i++)
     {
         int idx = char_to_idx8x8(str[i]);
         for(int j = 0; j < 8; j++)
@@ -169,7 +168,6 @@ void ssd1306_write_string_8x8(struct ssd1306_t* ssd, char* str)
             ssd1306_send_data(ssd, Font8x8[idx + j]);
         }
     }
-    kfree(new_str);
 }
 void ssd1306_write_space(struct ssd1306_t* ssd)
 {

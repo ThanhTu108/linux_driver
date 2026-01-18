@@ -82,6 +82,7 @@ struct ssd1306_t
     struct i2c_client* client;
     atomic_t last_btn;
     struct completion event;
+    struct work_struct work_event;
     struct task_struct* thread_ui;
     struct mutex i2c_lock;
     struct fsm_state* cur_state;
